@@ -46,6 +46,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -207,6 +208,11 @@ public class ElasticsearchSink extends AbstractOperator {
 	private long reconnectionPolicyCount = 1;
 	
 	/**
+	 * Mapper size plugin is installed.
+	 */
+	private boolean mapperSizeInstalled = false;
+	
+	/**
 	 * Logger for tracing.
 	 */
 	private static Logger _trace = Logger.getLogger(ElasticsearchSink.class.getName());
@@ -317,18 +323,20 @@ public class ElasticsearchSink extends AbstractOperator {
 	    			}
 	    			
 	    			// Get/set size metrics for current type.
-	    			SearchResponse sr = client.prepareSearch(indexToInsert)
-	    												.setTypes(typeToInsert)
-	    												.setQuery(QueryBuilders.matchAllQuery())
-	    												.addAggregation(AggregationBuilders.extendedStats("size_metrics").field("_size"))
-	    												.get();
-	    			
-	    			ExtendedStats sizeMetrics = sr.getAggregations().get("size_metrics");
-	    			
-	    			avgInsertSizeBytes.setValue((long)sizeMetrics.getAvg());
-	    			maxInsertSizeBytes.setValue((long)sizeMetrics.getMax());
-	    			minInsertSizeBytes.setValue((long)sizeMetrics.getMin());
-	    			sumInsertSizeBytes.setValue((long)sizeMetrics.getSum());
+	    			if (mapperSizeInstalled) {
+		    			SearchResponse sr = client.prepareSearch(indexToInsert)
+		    												.setTypes(typeToInsert)
+		    												.setQuery(QueryBuilders.matchAllQuery())
+		    												.addAggregation(AggregationBuilders.extendedStats("size_metrics").field("_size"))
+		    												.get();
+		    			
+		    			ExtendedStats sizeMetrics = sr.getAggregations().get("size_metrics");
+		    			
+		    			avgInsertSizeBytes.setValue((long)sizeMetrics.getAvg());
+		    			maxInsertSizeBytes.setValue((long)sizeMetrics.getMax());
+		    			minInsertSizeBytes.setValue((long)sizeMetrics.getMin());
+		    			sumInsertSizeBytes.setValue((long)sizeMetrics.getSum());
+	    			}
 	    			
 	    			// Clear bulkRequest. Gets recreated in connectedToElasticsearch().
 	    			bulkRequest = null;
@@ -362,22 +370,30 @@ public class ElasticsearchSink extends AbstractOperator {
     	
     	// Keep trying to reconnect until reconnectionPolicyCount met.
     	long reconnectionAttempts = 0;
-    	while (reconnectionAttempts <= reconnectionPolicyCount) {
+    	reconnectionCount.setValue(0);
+    	while (reconnectionAttempts < reconnectionPolicyCount) {
 	    	try {
 				// Create index if it doesn't exist.
 				if (!client.admin().indices().prepareExists(indexToInsert).execute().actionGet().isExists()) {
-					XContentBuilder builder = XContentFactory.jsonBuilder()
-															.startObject()
-																.startObject("_size")
-																	.field("enabled", true)
-																.endObject()
-															.endObject();
-					
-					CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).addMapping(typeToInsert, builder).get();
-					
-					_trace.error("index response is acknowledged: " + indexResponse.isAcknowledged());
+					try {
+						XContentBuilder builder = XContentFactory.jsonBuilder()
+																.startObject()
+																	.startObject("_size")
+																		.field("enabled", true)
+																	.endObject()
+																.endObject();
+						
+						CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).addMapping(typeToInsert, builder).get();
+						mapperSizeInstalled = true;
+						_trace.debug("Index response is acknowledged: " + indexResponse.isAcknowledged());
+						
+					} catch (MapperParsingException e) {
+						_trace.error(e);
+						mapperSizeInstalled = false;
 
-					//client.admin().indices().create(Requests.createIndexRequest(indexToInsert)).actionGet();
+						CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).get();
+						_trace.debug("Index response is acknowledged: " + indexResponse.isAcknowledged());
+					}
 				}
 				
 				if (bulkRequest == null) {
@@ -385,10 +401,6 @@ public class ElasticsearchSink extends AbstractOperator {
 				}
 				
 				isConnected.setValue(1);
-				if (reconnectionAttempts > 0) {
-		        	reconnectionCount.increment();
-				}
-				
 				return true;
 				
 	        } catch (InvalidIndexNameException | NoNodeAvailableException e) {
@@ -396,10 +408,10 @@ public class ElasticsearchSink extends AbstractOperator {
 	        	
 	        	isConnected.setValue(0);
 	        	reconnectionAttempts++;
+	        	reconnectionCount.increment();
 	        }
     	}
     	
-    	reconnectionCount.setValue(0);
     	_trace.error("Reconnection policy count, " + reconnectionPolicyCount + ", reached. Operator still not connected to server.");
     	return false;
     }
