@@ -21,6 +21,9 @@ Toolkit for sending tuple data from a Streams application to Elasticsearch
 
 Refer to official [Download and Installation Steps](https://www.elastic.co/downloads/elasticsearch).
 
+#### Install Elasticsearch Mapper Size Plugin
+The mapper size plugin gives the ElasticsearchSink the ability to query the size of documents indexed. Some metrics will only display once this plugin is installed.
+
 ### SPLDOC documentation
 
 You can generate HTML from the SPLDOC with the following commands:
