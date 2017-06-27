@@ -7,19 +7,15 @@
 
 package com.ibm.streamsx.elasticsearch;
 
-
 import java.io.IOException;
-import java.net.InetAddress;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.NoHttpResponseException;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.log4j.Logger;
-
 import com.ibm.json.java.JSONObject;
 import com.ibm.streams.operator.AbstractOperator;
 import com.ibm.streams.operator.OperatorContext;
@@ -32,6 +28,7 @@ import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streams.operator.model.InputPortSet;
 import com.ibm.streams.operator.model.InputPortSet.WindowMode;
 import com.ibm.streams.operator.model.InputPortSet.WindowPunctuationInputMode;
+import com.ibm.streamsx.elasticsearch.internal.SizeMapping;
 import com.ibm.streams.operator.model.InputPorts;
 import com.ibm.streams.operator.model.Libraries;
 import com.ibm.streams.operator.model.Parameter;
@@ -43,13 +40,14 @@ import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.Bulk.Builder;
+import io.searchbox.core.BulkResult;
+import io.searchbox.core.BulkResult.BulkResultItem;
 import io.searchbox.core.Index;
 import io.searchbox.core.Search;
 import io.searchbox.core.SearchResult;
 import io.searchbox.core.search.aggregation.ExtendedStatsAggregation;
 import io.searchbox.indices.CreateIndex;
-import io.searchbox.indices.mapping.GetMapping;
-import io.searchbox.indices.mapping.PutMapping;
+import io.searchbox.indices.IndicesExists;
 
 @PrimitiveOperator(
 		name="ElasticsearchRestIndex",
@@ -83,7 +81,7 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 			+ "Elasticsearch server to connect to.\\n"
 			+ "\\n"
 			+ "By default, the hostname is 'localhost', and the hostport "
-			+ "is 9300. This configuration can be changed in the parameters.\\n"
+			+ "is 9200. This configuration can be changed in the parameters.\\n"
 			+ "\\n"
 			+ "An index and type must also be specified. The id is optional and if"
 			+ "not specified, it is auto-generated.\\n"
@@ -162,6 +160,14 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
 		this.reconnectionPolicyCount = (long)reconnectionPolicyCount;
 	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies whether to store and aggregate size metrics."
+			)
+	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
+		this.sizeMetricsEnabled = sizeMetricsEnabled;
+	}
 
 	
 	// ------------------------------------------------------------------------
@@ -207,6 +213,11 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	private long reconnectionPolicyCount = 1;
 	
 	/**
+	 * Size metrics should be gathered.
+	 */
+	private boolean sizeMetricsEnabled = false;
+	
+	/**
 	 * Mapper size plugin is installed.
 	 */
 	private boolean mapperSizeInstalled = false;
@@ -230,11 +241,10 @@ public class ElasticsearchRestIndex extends AbstractOperator {
         factory.setHttpClientConfig(new HttpClientConfig
                                .Builder(hostName + ":" + hostPort)
                                .multiThreaded(true)
-				       			//Per default this implementation will create no more than 2 concurrent connections per given route
-				       			.defaultMaxTotalConnectionPerRoute(2)
-				       			// and no more 20 connections in total
-				       			.maxTotalConnection(10)
-				                               .build());
+                               .defaultMaxTotalConnectionPerRoute(2)
+                               // and no more 15 connections in total
+                               .maxTotalConnection(15)
+                               .build());
         
         client = factory.getObject();
 	}
@@ -273,98 +283,112 @@ public class ElasticsearchRestIndex extends AbstractOperator {
     			jsonFields.put(timestampName, df.format(new Date(System.currentTimeMillis())));
     		}
     	}
+        	
+    	// Get index name/type/id specified inside tuple (default: from params).
+    	String indexToInsert = index;
+    	String typeToInsert = type;
+    	String idToInsert = null;
     	
-    	String source = jsonFields.toString();
-        
-        // Output metrics to Elasticsearch.
-        if (jsonFields != null) {
-        	
-        	// Get index name/type/id specified inside tuple (default: from params).
-        	String indexToInsert = index;
-        	String typeToInsert = type;
-        	String idToInsert = null;
-        	
-        	if (attributeNames.contains(index) && schema.getAttribute(index).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(index).equals("")) {
-        		indexToInsert = tuple.getString(index);
-        		_trace.error("indexToInsert: " + indexToInsert);
-        	}
-        	
-        	if (attributeNames.contains(type) && schema.getAttribute(type).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(type).equals("")) {
-        		typeToInsert = tuple.getString(type);
-        	}
+    	if (attributeNames.contains(index) && schema.getAttribute(index).getType().getMetaType() == Type.MetaType.RSTRING
+    			&& !tuple.getString(index).equals("")) {
+    		indexToInsert = tuple.getString(index);
+    	}
+    	
+    	if (attributeNames.contains(type) && schema.getAttribute(type).getType().getMetaType() == Type.MetaType.RSTRING
+    			&& !tuple.getString(type).equals("")) {
+    		typeToInsert = tuple.getString(type);
+    	}
 
-        	if (id != null && attributeNames.contains(id) && schema.getAttribute(id).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(id).equals("")) {
-        		idToInsert = tuple.getString(id);
+    	if (id != null && attributeNames.contains(id) && schema.getAttribute(id).getType().getMetaType() == Type.MetaType.RSTRING
+    			&& !tuple.getString(id).equals("")) {
+    		idToInsert = tuple.getString(id);
+    	}
+    	
+    	if (connectedToElasticsearch(indexToInsert, typeToInsert)) {
+        	
+    		// Add jsonFields to bulkBuilder.
+        	String source = jsonFields.toString();
+        	
+        	if (idToInsert != null) {
+        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).id(idToInsert).build());
+        	} else {
+        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).build());
         	}
         	
-        	if (connectedToElasticsearch(indexToInsert, typeToInsert)) {
+        	currentBulkSize++;
+    	
+        	// If bulk size met, output jsonFields to Elasticsearch.
+        	if(currentBulkSize >= bulkSize) {
+	        	Bulk bulk = bulkBuilder.build();
+	        	BulkResult result;
 	        	
-	    		// Add jsonFields to bulkBuilder.
-	        	if (idToInsert != null) {
-	        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).id(idToInsert).build());
-	        	} else {
-	        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).build());
+	        	try {
+		        	result = client.execute(bulk);
+	        	} catch (NoHttpResponseException e) {
+	        		_trace.error(e);
+	        		return;
 	        	}
 	        	
-	        	currentBulkSize++;
-        	
-	        	// If bulk size met, output jsonFields to Elasticsearch.
-	        	if(currentBulkSize == bulkSize) {
-		        	Bulk bulk = bulkBuilder.build();
-		        	JestResult result = client.execute(bulk);
-	    			if (result.isSucceeded()) {
-	    				long currentNumInserts = numInserts.getValue();
-	    				numInserts.setValue(currentNumInserts + bulkSize);
-	    				currentBulkSize = 0;
-	    			} else {
-	    				_trace.error(result.getErrorMessage());
-//	    				for (BulkItemResponse item : result) {
-//	    					if (!item.isFailed()) {
-//	    						numInserts.increment();
-//	    					} else {
-//	    						totalFailedRequests.increment();
-//	    					}
-//	    				}
-	    			}
+    			if (result.isSucceeded()) {
+    				long currentNumInserts = numInserts.getValue();
+    				numInserts.setValue(currentNumInserts + bulkSize);
+    				currentBulkSize = 0;
+    			} else {
+    				for (BulkResultItem item : result.getItems()) {
+    					if (item.error != null) {
+    						numInserts.increment();
+    					} else {
+    						totalFailedRequests.increment();
+    					}
+    				}
+    			}
+    			
+    			// Clear bulkBuilder. Gets recreated in connectedToElasticsearch().
+    			bulkBuilder = null;
+    			
+    			// Get size metrics for current type.
+    			if (sizeMetricsEnabled && mapperSizeInstalled) {
+	    			String query = "{\n" +
+	    	                "    \"query\" : {\n" +
+	    	                "        \"match_all\" : {}\n" +
+	    	                "    },\n" +
+	    	                "    \"aggs\" : {\n" +
+	    	                "        \"size_metrics\" : {\n" +
+	    	                "            \"extended_stats\" : {\n" +
+	    	                "                \"field\" : \"_size\"\n" +
+	    	                "            }\n" +
+	    	                "        }\n" +
+	    	                "    }\n" +
+	    	                "}";
 	    			
-	    			// Get/set size metrics for current type.
-	    			if (mapperSizeInstalled) {
-		    			String query = "{\n" +
-		    	                "    \"query\" : {\n" +
-		    	                "        \"match_all\" : {}\n" +
-		    	                "    },\n" +
-		    	                "    \"aggs\" : {\n" +
-		    	                "        \"size_metrics\" : {\n" +
-		    	                "            \"extended_stats\" : {\n" +
-		    	                "                \"field\" : \"_size\"\n" +
-		    	                "            }\n" +
-		    	                "        }\n" +
-		    	                "    }\n" +
-		    	                "}";
-		    			
-		    	        Search search = new Search.Builder(query)
-		    	                .addIndex(indexToInsert)
-		    	                .addType(typeToInsert)
-		    	                .build();
-		    	        
-		    	        SearchResult searchResult = client.execute(search);
+	    	        Search search = new Search.Builder(query)
+	    	                .addIndex(indexToInsert)
+	    	                .addType(typeToInsert)
+	    	                .build();
+	    	        
+	    	        SearchResult searchResult = client.execute(search);
+	    	        
+	    	        if (searchResult.isSucceeded()) {
 		    	        ExtendedStatsAggregation sizeMetrics = searchResult.getAggregations().getExtendedStatsAggregation("size_metrics");
 		    			
-		    			avgInsertSizeBytes.setValue((long)sizeMetrics.getAvg().doubleValue());
-		    			maxInsertSizeBytes.setValue((long)sizeMetrics.getMax().doubleValue());
-		    			minInsertSizeBytes.setValue((long)sizeMetrics.getMin().doubleValue());
-		    			sumInsertSizeBytes.setValue((long)sizeMetrics.getSum().doubleValue());
-	    			}
-	    			
-	    			// Clear bulkBuilder. Gets recreated in connectedToElasticsearch().
-	    			bulkBuilder = null;
-	    		}
-        	}
-	        
-        }
+		    	        if (sizeMetrics != null) {
+		    	        	if (sizeMetrics.getAvg() != null) {
+				    			avgInsertSizeBytes.setValue(sizeMetrics.getAvg().longValue());
+		    	        	}
+		    	        	if (sizeMetrics.getMax() != null) {
+		    	        		maxInsertSizeBytes.setValue(sizeMetrics.getMax().longValue());
+		    	        	}
+		    	        	if (sizeMetrics.getMin() != null) {
+		    	        		minInsertSizeBytes.setValue(sizeMetrics.getMin().longValue());
+		    	        	}
+		    	        	if (sizeMetrics.getSum() != null) {
+		    	        		sumInsertSizeBytes.setValue(sizeMetrics.getSum().longValue());
+		    	        	}
+		    	        }
+	    	        }
+    			}
+    		}
+    	}
     }
 
 	/**
@@ -395,37 +419,29 @@ public class ElasticsearchRestIndex extends AbstractOperator {
     	while (reconnectionAttempts < reconnectionPolicyCount) {
 	    	try {
 				// Create index if it doesn't exist.
-	    		GetMapping getMapping = new GetMapping.Builder().build();
-	    		JestResult getResult = client.execute(getMapping);
-				if (getResult.getJsonObject().getAsJsonObject(indexToInsert) == null) {
-					
-					JSONObject settings = new JSONObject();
-					settings.put(typeToInsert
-							, new JSONObject().put("_size"
-									, new JSONObject().put("enabled", true)));
-					PutMapping putMapping = new PutMapping.Builder(
-							indexToInsert,
-					        typeToInsert,
-					        settings.toString()
-					).build();
-					JestResult result = client.execute(putMapping);
-					_trace.error(settings.toString());
-					
-					mapperSizeInstalled = true;
-					_trace.error("Index response is succeeded: " + result.isSucceeded());
+	    		boolean indexExists = client.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
+				if (!indexExists) {
+					JestResult result = client.execute(new CreateIndex.Builder(indexToInsert).build());
 					
 					if (!result.isSucceeded()) {
-						mapperSizeInstalled = false;
-
-						result = client.execute(new CreateIndex.Builder(indexToInsert).build());
-						_trace.error("Index response is succeeded: " + result.isSucceeded());
-						
-						if (!result.isSucceeded()) {
-							return false;
-						}
+						isConnected.setValue(0);
+						return false;
 					}
 				}
 
+				// Enable _size mapping.
+				if (sizeMetricsEnabled) {
+					SizeMapping sizeMapping = new SizeMapping.Builder(indexToInsert, typeToInsert, true).build();
+					JestResult result = client.execute(sizeMapping);
+					
+					if (result.isSucceeded()) {
+						mapperSizeInstalled = true;
+					} else {
+						_trace.error("Mapper size plugin was not detected. Please try restarting the Elasticsearch server after install.");
+					}
+				}
+
+				// Reset bulkBuilder.
 				if (bulkBuilder == null) {
 					bulkBuilder = new Bulk.Builder()
 								  .defaultIndex(indexToInsert)
