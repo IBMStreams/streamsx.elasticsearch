@@ -52,9 +52,9 @@ import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStat
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 @PrimitiveOperator(
-		name="ElasticsearchSink",
+		name="ElasticsearchIndex",
 		namespace="com.ibm.streamsx.elasticsearch",
-		description=ElasticsearchSink.DESC_OPERATOR
+		description=ElasticsearchIndex.DESC_OPERATOR
 		)
 @InputPorts({
 	@InputPortSet(
@@ -68,7 +68,7 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 @Libraries({
 	"opt/downloaded/*"
 	})
-public class ElasticsearchSink extends AbstractOperator {
+public class ElasticsearchIndex extends AbstractOperator {
 
 	// ------------------------------------------------------------------------
 	// Documentation.
@@ -76,10 +76,10 @@ public class ElasticsearchSink extends AbstractOperator {
 	// ------------------------------------------------------------------------
 
 	static final String DESC_OPERATOR = 
-			"The ElasticsearchSink operator receives incoming tuples and outputs "
+			"The ElasticsearchIndex operator receives incoming tuples and outputs "
 			+ "the attribute's name-value pairs to an Elasticsearch database.\\n"
 			+ "\\n"
-			+ "The ElasticsearchSink requires a hostname and hostport of an "
+			+ "The ElasticsearchIndex requires a hostname and hostport of an "
 			+ "Elasticsearch server to connect to.\\n"
 			+ "\\n"
 			+ "By default, the hostname is 'localhost', and the hostport "
@@ -225,7 +225,7 @@ public class ElasticsearchSink extends AbstractOperator {
 	/**
 	 * Logger for tracing.
 	 */
-	private static Logger _trace = Logger.getLogger(ElasticsearchSink.class.getName());
+	private static Logger _trace = Logger.getLogger(ElasticsearchIndex.class.getName());
 	
 	/**
      * Initialize this operator and create Elasticsearch client to send get requests to.
