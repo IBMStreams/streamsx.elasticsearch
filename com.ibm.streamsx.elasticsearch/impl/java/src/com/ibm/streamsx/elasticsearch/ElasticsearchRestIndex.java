@@ -7,18 +7,16 @@
 
 package com.ibm.streamsx.elasticsearch;
 
-
 import java.io.IOException;
-import java.net.InetAddress;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.NoHttpResponseException;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.log4j.Logger;
-
+import com.ibm.json.java.JSONObject;
 import com.ibm.streams.operator.AbstractOperator;
 import com.ibm.streams.operator.OperatorContext;
 import com.ibm.streams.operator.StreamSchema;
@@ -30,33 +28,31 @@ import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streams.operator.model.InputPortSet;
 import com.ibm.streams.operator.model.InputPortSet.WindowMode;
 import com.ibm.streams.operator.model.InputPortSet.WindowPunctuationInputMode;
+import com.ibm.streamsx.elasticsearch.internal.SizeMapping;
 import com.ibm.streams.operator.model.InputPorts;
 import com.ibm.streams.operator.model.Libraries;
 import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streams.operator.model.PrimitiveOperator;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.bulk.BulkItemResponse;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.transport.NoNodeAvailableException;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.indices.InvalidIndexNameException;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import io.searchbox.client.JestClient;
+import io.searchbox.client.JestClientFactory;
+import io.searchbox.client.JestResult;
+import io.searchbox.client.config.HttpClientConfig;
+import io.searchbox.core.Bulk;
+import io.searchbox.core.Bulk.Builder;
+import io.searchbox.core.BulkResult;
+import io.searchbox.core.BulkResult.BulkResultItem;
+import io.searchbox.core.Index;
+import io.searchbox.core.Search;
+import io.searchbox.core.SearchResult;
+import io.searchbox.core.search.aggregation.ExtendedStatsAggregation;
+import io.searchbox.indices.CreateIndex;
+import io.searchbox.indices.IndicesExists;
 
 @PrimitiveOperator(
-		name="ElasticsearchSink",
+		name="ElasticsearchRestIndex",
 		namespace="com.ibm.streamsx.elasticsearch",
-		description=ElasticsearchSink.DESC_OPERATOR
+		description=ElasticsearchRestIndex.DESC_OPERATOR
 		)
 @InputPorts({
 	@InputPortSet(
@@ -70,7 +66,7 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 @Libraries({
 	"opt/downloaded/*"
 	})
-public class ElasticsearchSink extends AbstractOperator {
+public class ElasticsearchRestIndex extends AbstractOperator {
 
 	// ------------------------------------------------------------------------
 	// Documentation.
@@ -78,14 +74,14 @@ public class ElasticsearchSink extends AbstractOperator {
 	// ------------------------------------------------------------------------
 
 	static final String DESC_OPERATOR = 
-			"The ElasticsearchSink operator receives incoming tuples and outputs "
+			"The ElasticsearchRestIndex operator receives incoming tuples and outputs "
 			+ "the attribute's name-value pairs to an Elasticsearch database.\\n"
 			+ "\\n"
-			+ "The ElasticsearchSink requires a hostname and hostport of an "
+			+ "The ElasticsearchRestIndex requires a hostname and hostport of an "
 			+ "Elasticsearch server to connect to.\\n"
 			+ "\\n"
 			+ "By default, the hostname is 'localhost', and the hostport "
-			+ "is 9300. This configuration can be changed in the parameters.\\n"
+			+ "is 9200. This configuration can be changed in the parameters.\\n"
 			+ "\\n"
 			+ "An index and type must also be specified. The id is optional and if"
 			+ "not specified, it is auto-generated.\\n"
@@ -110,7 +106,7 @@ public class ElasticsearchSink extends AbstractOperator {
 
 	@Parameter(
 			optional=true,
-			description="Specifies the hostport of the Elasticsearch server (default: 9300)."
+			description="Specifies the hostport of the Elasticsearch server (default: 9200)."
 			)
 	public void setHostPort(int hostPort) {
 		this.hostPort = hostPort;
@@ -164,6 +160,14 @@ public class ElasticsearchSink extends AbstractOperator {
 	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
 		this.reconnectionPolicyCount = (long)reconnectionPolicyCount;
 	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies whether to store and aggregate size metrics."
+			)
+	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
+		this.sizeMetricsEnabled = sizeMetricsEnabled;
+	}
 
 	
 	// ------------------------------------------------------------------------
@@ -173,8 +177,8 @@ public class ElasticsearchSink extends AbstractOperator {
 	/**
 	 * Elasticsearch parameters.
 	 */
-	private String hostName = "127.0.0.1";
-	private int hostPort = 9300;
+	private String hostName = "http://localhost";
+	private int hostPort = 9200;
 	
 	private String index;
 	private String type;
@@ -184,10 +188,11 @@ public class ElasticsearchSink extends AbstractOperator {
 	private int bulkSize = 1;
 	
 	/**
-	 * Elasticsearch client REST API.
+	 * Elasticsearch Jest API.
 	 */
-	private TransportClient client;
-	private BulkRequestBuilder bulkRequest;
+	private JestClient client;
+	private Builder bulkBuilder;
+	private int currentBulkSize = 0;
 	
 	/**
 	 * Metrics
@@ -208,6 +213,11 @@ public class ElasticsearchSink extends AbstractOperator {
 	private long reconnectionPolicyCount = 1;
 	
 	/**
+	 * Size metrics should be gathered.
+	 */
+	private boolean sizeMetricsEnabled = false;
+	
+	/**
 	 * Mapper size plugin is installed.
 	 */
 	private boolean mapperSizeInstalled = false;
@@ -215,22 +225,25 @@ public class ElasticsearchSink extends AbstractOperator {
 	/**
 	 * Logger for tracing.
 	 */
-	private static Logger _trace = Logger.getLogger(ElasticsearchSink.class.getName());
+	private static Logger _trace = Logger.getLogger(ElasticsearchRestIndex.class.getName());
 	
 	/**
      * Initialize this operator and create Elasticsearch client to send get requests to.
      * @param context OperatorContext for this operator.
      * @throws Exception Operator failure, will cause the enclosing PE to terminate.
      */
-	@SuppressWarnings("resource")
 	@Override
 	public synchronized void initialize(OperatorContext context) throws Exception {
 		super.initialize(context);
 
-    	// Create client that's connected to Elasticsearch server.
-        Settings settings = Settings.builder().put("cluster.name","elasticsearch").build();
-        InetAddress hostAddress = InetAddress.getByName(hostName);
-        client = new PreBuiltTransportClient(settings).addTransportAddress(new InetSocketTransportAddress(hostAddress, hostPort));
+        // Construct a new Jest client according to configuration via factory
+        JestClientFactory factory = new JestClientFactory();
+        factory.setHttpClientConfig(new HttpClientConfig
+                               .Builder(hostName + ":" + hostPort)
+                               .multiThreaded(true)
+                               .build());
+        
+        client = factory.getObject();
 	}
 
 	/**
@@ -249,10 +262,10 @@ public class ElasticsearchSink extends AbstractOperator {
     	// Collect fields to add to JSON output.
 		StreamSchema schema = tuple.getStreamSchema();
     	Set<String> attributeNames = schema.getAttributeNames();
-    	Map<String, Object> fieldsToAdd = new HashMap<String, Object>();
+    	JSONObject jsonFields = new JSONObject();
     	
     	for(String attributeName : attributeNames) {
-    		fieldsToAdd.put(attributeName, tuple.getObject(attributeName));
+    		jsonFields.put(attributeName, tuple.getObject(attributeName));
     	}
         
     	// Add timestamp, if specified, for time-based queries.
@@ -262,88 +275,117 @@ public class ElasticsearchSink extends AbstractOperator {
     		if (attributeNames.contains(timestampName) && schema.getAttribute(timestampName).getType().getMetaType() == Type.MetaType.RSTRING
         			&& !tuple.getString(timestampName).equals("")) {
     			String timestampToInsert = tuple.getString(timestampName);
-    			fieldsToAdd.put(timestampName, df.format(timestampToInsert));
+    			jsonFields.put(timestampName, df.format(timestampToInsert));
     		} else {
-    	    	fieldsToAdd.put(timestampName, df.format(new Date(System.currentTimeMillis())));
+    			jsonFields.put(timestampName, df.format(new Date(System.currentTimeMillis())));
     		}
     	}
+        	
+    	// Get index name/type/id specified inside tuple (default: from params).
+    	String indexToInsert = index;
+    	String typeToInsert = type;
+    	String idToInsert = null;
     	
-        // Convert fields to JSON to output.
-    	XContentBuilder jsonFields = XContentFactory.jsonBuilder().map(fieldsToAdd);
-        
-        // Output metrics to Elasticsearch.
-        if (jsonFields != null) {
-        	
-        	// Get index name/type/id specified inside tuple (default: from params).
-        	String indexToInsert = index;
-        	String typeToInsert = type;
-        	String idToInsert = null;
-        	
-        	if (attributeNames.contains(index) && schema.getAttribute(index).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(index).equals("")) {
-        		indexToInsert = tuple.getString(index);
-        		_trace.error("indexToInsert: " + indexToInsert);
-        	}
-        	
-        	if (attributeNames.contains(type) && schema.getAttribute(type).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(type).equals("")) {
-        		typeToInsert = tuple.getString(type);
-        	}
+    	if (attributeNames.contains(index) && schema.getAttribute(index).getType().getMetaType() == Type.MetaType.RSTRING
+    			&& !tuple.getString(index).equals("")) {
+    		indexToInsert = tuple.getString(index);
+    	}
+    	
+    	if (attributeNames.contains(type) && schema.getAttribute(type).getType().getMetaType() == Type.MetaType.RSTRING
+    			&& !tuple.getString(type).equals("")) {
+    		typeToInsert = tuple.getString(type);
+    	}
 
-        	if (id != null && attributeNames.contains(id) && schema.getAttribute(id).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(id).equals("")) {
-        		idToInsert = tuple.getString(id);
+    	if (id != null && attributeNames.contains(id) && schema.getAttribute(id).getType().getMetaType() == Type.MetaType.RSTRING
+    			&& !tuple.getString(id).equals("")) {
+    		idToInsert = tuple.getString(id);
+    	}
+    	
+    	if (connectedToElasticsearch(indexToInsert, typeToInsert)) {
+        	
+    		// Add jsonFields to bulkBuilder.
+        	String source = jsonFields.toString();
+        	
+        	if (idToInsert != null) {
+        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).id(idToInsert).build());
+        	} else {
+        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).build());
         	}
         	
-        	if (connectedToElasticsearch(indexToInsert, typeToInsert)) {
+        	currentBulkSize++;
+    	
+        	// If bulk size met, output jsonFields to Elasticsearch.
+        	if(currentBulkSize >= bulkSize) {
+	        	Bulk bulk = bulkBuilder.build();
+	        	BulkResult result;
 	        	
-	    		// Add jsonFields to bulkRequest.
-	        	if (idToInsert != null) {
-	        		bulkRequest.add(client.prepareIndex(indexToInsert, typeToInsert, idToInsert)
-	        						.setSource(jsonFields));
-	        	} else {
-	        		bulkRequest.add(client.prepareIndex(indexToInsert, typeToInsert)
-									.setSource(jsonFields));
+	        	try {
+		        	result = client.execute(bulk);
+	        	} catch (NoHttpResponseException e) {
+	        		_trace.error(e);
+	        		return;
 	        	}
-        	
-	        	// If bulk size met, output jsonFields to Elasticsearch.
-	        	if(bulkRequest.numberOfActions() % bulkSize == 0) {
-	    			BulkResponse response = bulkRequest.get();
-	    			if (!response.hasFailures()) {
-	    				long currentNumInserts = numInserts.getValue();
-	    				numInserts.setValue(currentNumInserts + bulkSize);
-	    			} else {
-	    				for (BulkItemResponse item : response) {
-	    					if (!item.isFailed()) {
-	    						numInserts.increment();
-	    					} else {
-	    						totalFailedRequests.increment();
-	    					}
-	    				}
-	    			}
+	        	
+    			if (result.isSucceeded()) {
+    				long currentNumInserts = numInserts.getValue();
+    				numInserts.setValue(currentNumInserts + bulkSize);
+    				currentBulkSize = 0;
+    			} else {
+    				for (BulkResultItem item : result.getItems()) {
+    					if (item.error != null) {
+    						numInserts.increment();
+    					} else {
+    						totalFailedRequests.increment();
+    					}
+    				}
+    			}
+    			
+    			// Clear bulkBuilder. Gets recreated in connectedToElasticsearch().
+    			bulkBuilder = null;
+    			
+    			// Get size metrics for current type.
+    			if (sizeMetricsEnabled && mapperSizeInstalled) {
+	    			String query = "{\n" +
+	    	                "    \"query\" : {\n" +
+	    	                "        \"match_all\" : {}\n" +
+	    	                "    },\n" +
+	    	                "    \"aggs\" : {\n" +
+	    	                "        \"size_metrics\" : {\n" +
+	    	                "            \"extended_stats\" : {\n" +
+	    	                "                \"field\" : \"_size\"\n" +
+	    	                "            }\n" +
+	    	                "        }\n" +
+	    	                "    }\n" +
+	    	                "}";
 	    			
-	    			// Get/set size metrics for current type.
-	    			if (mapperSizeInstalled) {
-		    			SearchResponse sr = client.prepareSearch(indexToInsert)
-		    												.setTypes(typeToInsert)
-		    												.setQuery(QueryBuilders.matchAllQuery())
-		    												.addAggregation(AggregationBuilders.extendedStats("size_metrics").field("_size"))
-		    												.get();
+	    	        Search search = new Search.Builder(query)
+	    	                .addIndex(indexToInsert)
+	    	                .addType(typeToInsert)
+	    	                .build();
+	    	        
+	    	        SearchResult searchResult = client.execute(search);
+	    	        
+	    	        if (searchResult.isSucceeded()) {
+		    	        ExtendedStatsAggregation sizeMetrics = searchResult.getAggregations().getExtendedStatsAggregation("size_metrics");
 		    			
-		    			ExtendedStats sizeMetrics = sr.getAggregations().get("size_metrics");
-		    			
-		    			avgInsertSizeBytes.setValue((long)sizeMetrics.getAvg());
-		    			maxInsertSizeBytes.setValue((long)sizeMetrics.getMax());
-		    			minInsertSizeBytes.setValue((long)sizeMetrics.getMin());
-		    			sumInsertSizeBytes.setValue((long)sizeMetrics.getSum());
-	    			}
-	    			
-	    			// Clear bulkRequest. Gets recreated in connectedToElasticsearch().
-	    			bulkRequest = null;
-	    		}
-        	}
-	        
-        }
+		    	        if (sizeMetrics != null) {
+		    	        	if (sizeMetrics.getAvg() != null) {
+				    			avgInsertSizeBytes.setValue(sizeMetrics.getAvg().longValue());
+		    	        	}
+		    	        	if (sizeMetrics.getMax() != null) {
+		    	        		maxInsertSizeBytes.setValue(sizeMetrics.getMax().longValue());
+		    	        	}
+		    	        	if (sizeMetrics.getMin() != null) {
+		    	        		minInsertSizeBytes.setValue(sizeMetrics.getMin().longValue());
+		    	        	}
+		    	        	if (sizeMetrics.getSum() != null) {
+		    	        		sumInsertSizeBytes.setValue(sizeMetrics.getSum().longValue());
+		    	        	}
+		    	        }
+	    	        }
+    			}
+    		}
+    	}
     }
 
 	/**
@@ -356,7 +398,7 @@ public class ElasticsearchSink extends AbstractOperator {
         Logger.getLogger(this.getClass()).trace("Operator " + context.getName() + " shutting down in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId() );
 
         // Close connection to Elasticsearch server.
-        client.close();
+        client.shutdownClient();
         
         super.shutdown();
     }
@@ -374,36 +416,39 @@ public class ElasticsearchSink extends AbstractOperator {
     	while (reconnectionAttempts < reconnectionPolicyCount) {
 	    	try {
 				// Create index if it doesn't exist.
-				if (!client.admin().indices().prepareExists(indexToInsert).execute().actionGet().isExists()) {
-					try {
-						XContentBuilder builder = XContentFactory.jsonBuilder()
-																.startObject()
-																	.startObject("_size")
-																		.field("enabled", true)
-																	.endObject()
-																.endObject();
-						
-						CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).addMapping(typeToInsert, builder).get();
-						mapperSizeInstalled = true;
-						_trace.debug("Index response is acknowledged: " + indexResponse.isAcknowledged());
-						
-					} catch (MapperParsingException e) {
-						_trace.error(e);
-						mapperSizeInstalled = false;
-
-						CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).get();
-						_trace.debug("Index response is acknowledged: " + indexResponse.isAcknowledged());
+	    		boolean indexExists = client.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
+				if (!indexExists) {
+					JestResult result = client.execute(new CreateIndex.Builder(indexToInsert).build());
+					
+					if (!result.isSucceeded()) {
+						isConnected.setValue(0);
+						return false;
 					}
 				}
-				
-				if (bulkRequest == null) {
-					bulkRequest = client.prepareBulk();
+
+				// Enable _size mapping.
+				if (sizeMetricsEnabled) {
+					SizeMapping sizeMapping = new SizeMapping.Builder(indexToInsert, typeToInsert, true).build();
+					JestResult result = client.execute(sizeMapping);
+					
+					if (result.isSucceeded()) {
+						mapperSizeInstalled = true;
+					} else {
+						_trace.error("Mapper size plugin was not detected. Please try restarting the Elasticsearch server after install.");
+					}
+				}
+
+				// Reset bulkBuilder.
+				if (bulkBuilder == null) {
+					bulkBuilder = new Bulk.Builder()
+								  .defaultIndex(indexToInsert)
+								  .defaultType(typeToInsert);
 				}
 				
 				isConnected.setValue(1);
 				return true;
 				
-	        } catch (InvalidIndexNameException | NoNodeAvailableException e) {
+	        } catch (HttpHostConnectException e) {
 	        	_trace.error(e);
 	        	
 	        	isConnected.setValue(0);
