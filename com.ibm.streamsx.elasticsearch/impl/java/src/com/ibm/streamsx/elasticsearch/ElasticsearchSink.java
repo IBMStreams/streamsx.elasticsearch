@@ -34,7 +34,6 @@ import com.ibm.streams.operator.model.Libraries;
 import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streams.operator.model.PrimitiveOperator;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -163,7 +162,14 @@ public class ElasticsearchSink extends AbstractOperator {
 	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
 		this.reconnectionPolicyCount = (long)reconnectionPolicyCount;
 	}
-
+	
+	@Parameter(
+			optional=true,
+			description="Specifies whether to store and aggregate size metrics."
+			)
+	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
+		this.sizeMetricsEnabled = sizeMetricsEnabled;
+	}
 	
 	// ------------------------------------------------------------------------
 	// Implementation.
@@ -205,6 +211,11 @@ public class ElasticsearchSink extends AbstractOperator {
 	 * Metric parameters.
 	 */
 	private long reconnectionPolicyCount = 1;
+
+	/**
+	 * Size metrics should be gathered.
+	 */
+	private boolean sizeMetricsEnabled = false;
 	
 	/**
 	 * Mapper size plugin is installed.
@@ -322,7 +333,7 @@ public class ElasticsearchSink extends AbstractOperator {
 	    			}
 	    			
 	    			// Get/set size metrics for current type.
-	    			if (mapperSizeInstalled) {
+	    			if (sizeMetricsEnabled && mapperSizeInstalled) {
 		    			SearchResponse sr = client.prepareSearch(indexToInsert)
 		    												.setTypes(typeToInsert)
 		    												.setQuery(QueryBuilders.matchAllQuery())
@@ -372,8 +383,14 @@ public class ElasticsearchSink extends AbstractOperator {
     	reconnectionCount.setValue(0);
     	while (reconnectionAttempts < reconnectionPolicyCount) {
 	    	try {
-				// Create index if it doesn't exist.
-				if (!client.admin().indices().prepareExists(indexToInsert).execute().actionGet().isExists()) {
+				// Create index, if it doesn't exist.
+	    		boolean indexExists = client.admin().indices().prepareExists(indexToInsert).execute().actionGet().isExists();
+				if (!indexExists) {
+					client.admin().indices().prepareCreate(indexToInsert).get();
+				}
+				
+				// Set _size mapping, if enabled in parameters.
+				if (sizeMetricsEnabled) {
 					try {
 						XContentBuilder builder = XContentFactory.jsonBuilder()
 																.startObject()
@@ -382,16 +399,12 @@ public class ElasticsearchSink extends AbstractOperator {
 																	.endObject()
 																.endObject();
 						
-						CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).addMapping(typeToInsert, builder).get();
+						client.admin().indices().preparePutMapping(indexToInsert).setType(typeToInsert).setSource(builder).get();
 						mapperSizeInstalled = true;
-						_trace.debug("Index response is acknowledged: " + indexResponse.isAcknowledged());
 						
 					} catch (MapperParsingException e) {
 						_trace.error(e);
 						mapperSizeInstalled = false;
-
-						CreateIndexResponse indexResponse = client.admin().indices().prepareCreate(indexToInsert).get();
-						_trace.debug("Index response is acknowledged: " + indexResponse.isAcknowledged());
 					}
 				}
 				

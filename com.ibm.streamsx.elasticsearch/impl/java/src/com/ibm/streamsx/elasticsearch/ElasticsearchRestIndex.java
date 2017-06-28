@@ -241,9 +241,6 @@ public class ElasticsearchRestIndex extends AbstractOperator {
         factory.setHttpClientConfig(new HttpClientConfig
                                .Builder(hostName + ":" + hostPort)
                                .multiThreaded(true)
-                               .defaultMaxTotalConnectionPerRoute(2)
-                               // and no more 15 connections in total
-                               .maxTotalConnection(15)
                                .build());
         
         client = factory.getObject();
