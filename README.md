@@ -1,6 +1,11 @@
 # streamsx.elasticsearch
 
-Toolkit for sending tuple data from a Streams application to Elasticsearch
+Toolkit for sending tuple data from Streams applications to Elasticsearch. Contains 2 operators:
+
+- `ElasticsearchIndex`: Uses the Elasticsearch Java API's [Transport Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html) to send data to Elasticsearch.
+- `ElasticsearchRestIndex`: Uses [Jest](https://github.com/searchbox-io/Jest), a Java HTTP Rest client, to send data to Elasticsearch.
+
+Both operators perform the same functions - just through different clients/methods. Read more about the different clients [here](https://www.elastic.co/blog/found-interfacing-elasticsearch-picking-client).
 
 ### Get Started
 
