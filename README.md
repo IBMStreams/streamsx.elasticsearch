@@ -1,6 +1,11 @@
 # streamsx.elasticsearch
 
-Toolkit for sending tuple data from a Streams application to Elasticsearch
+Toolkit for sending tuple data from Streams applications to Elasticsearch. Contains 2 operators:
+
+- `ElasticsearchIndex`: Uses the Elasticsearch Java API's [Transport Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html) to send data to Elasticsearch.
+- `ElasticsearchRestIndex`: Uses [Jest](https://github.com/searchbox-io/Jest), a Java HTTP Rest client, to send data to Elasticsearch.
+
+Both operators perform the same functions - just through different clients/methods. Read more about the different clients [here](https://www.elastic.co/blog/found-interfacing-elasticsearch-picking-client).
 
 ### Get Started
 
@@ -22,7 +27,7 @@ Toolkit for sending tuple data from a Streams application to Elasticsearch
 Refer to official [Download and Installation Steps](https://www.elastic.co/downloads/elasticsearch).
 
 #### Install Elasticsearch Mapper Size Plugin
-The mapper size plugin gives the ElasticsearchSink the ability to query the size of documents indexed. Some metrics will only display once this plugin is installed.
+The mapper size plugin enables the Elasticsearch(Rest)Index to query and store the size of documents indexed. The size metrics will only display once this plugin is installed and the `sizeMetricsEnabled` is set to true in the operator's parameters.
 
 ### SPLDOC documentation
 
