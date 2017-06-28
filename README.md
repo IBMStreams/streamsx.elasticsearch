@@ -27,7 +27,7 @@ Both operators perform the same functions - just through different clients/metho
 Refer to official [Download and Installation Steps](https://www.elastic.co/downloads/elasticsearch).
 
 #### Install Elasticsearch Mapper Size Plugin
-The mapper size plugin gives the ElasticsearchSink the ability to query the size of documents indexed. Some metrics will only display once this plugin is installed.
+The mapper size plugin enables the Elasticsearch(Rest)Index to query and store the size of documents indexed. The size metrics will only display once this plugin is installed and the `sizeMetricsEnabled` is set to true in the operator's parameters.
 
 ### SPLDOC documentation
 
