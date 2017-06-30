@@ -101,7 +101,11 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 			description="Specifies the hostname of the Elasticsearch server (default: localhost)."
 			)
 	public void setHostName(String hostName) {
-		this.hostName = hostName;
+		if (hostName.matches("^http://.*")) {
+			this.hostName = hostName;
+		} else {
+			this.hostName = "http://" + hostName;
+		}
 	}
 
 	@Parameter(
