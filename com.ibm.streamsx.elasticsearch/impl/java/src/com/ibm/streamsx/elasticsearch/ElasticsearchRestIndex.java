@@ -267,10 +267,14 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 		StreamSchema schema = tuple.getStreamSchema();
     	Set<String> attributeNames = schema.getAttributeNames();
     	JSONObject jsonFields = new JSONObject();
-    	
-    	for(String attributeName : attributeNames) {
-    		jsonFields.put(attributeName, tuple.getObject(attributeName));
-    	}
+	    
+	for (String attributeName : attributeNames) {
+		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
+			jsonFields.put(attributeName, tuple.getObject(attributeName).toString());
+		} else {
+			jsonFields.put(attributeName, tuple.getObject(attributeName));
+		}
+	}
         
     	// Add timestamp, if specified, for time-based queries.
     	if (timestampName != null) {
