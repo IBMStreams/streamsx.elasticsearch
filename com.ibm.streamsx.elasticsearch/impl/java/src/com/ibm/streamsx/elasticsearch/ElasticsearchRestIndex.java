@@ -22,6 +22,7 @@ import com.ibm.streams.operator.OperatorContext;
 import com.ibm.streams.operator.StreamSchema;
 import com.ibm.streams.operator.StreamingInput;
 import com.ibm.streams.operator.Tuple;
+import com.ibm.streams.operator.TupleAttribute;
 import com.ibm.streams.operator.Type;
 import com.ibm.streams.operator.metrics.Metric;
 import com.ibm.streams.operator.model.CustomMetric;
@@ -104,40 +105,64 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 		if (hostName.matches("^http://.*")) {
 			this.hostName = hostName;
 		} else {
-			this.hostName = "http://" + hostName;
-		}
+	 		this.hostName = "http://" + hostName;
+ 		}
 	}
 
 	@Parameter(
 			optional=true,
-			description="Specifies the hostport of the Elasticsearch server (default: 9200)."
+			description="Specifies the hostport of the Elasticsearch server (default: 9300)."
 			)
 	public void setHostPort(int hostPort) {
 		this.hostPort = hostPort;
 	}
 	
 	@Parameter(
-			optional=false,
+			optional=true,
 			description="Specifies the name for the index."
 			)
-	public void setIndexName(String index) {
-		this.index = index;
-	}
-	
-	@Parameter(
-			optional=false,
-			description="Specifies the name for the type."
-			)
-	public void setTypeName(String type) {
-		this.type = type;
+	public void setIndexName(String indexName) {
+		this.indexName = indexName;
 	}
 	
 	@Parameter(
 			optional=true,
-			description="Specified the name for the id. If not specified, id is auto-generated."
+			description="Specifies the attribute providing the index names."
 			)
-	public void setIdName(String id) {
-		this.id = id;
+	public void setIndexNameAttribute(TupleAttribute<Tuple, String> indexNameAttribute) throws IOException {
+		this.indexNameAttribute = indexNameAttribute;
+	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies the name for the type."
+			)
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
+	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies the attribute providing the type names."
+			)
+	public void setTypeNameAttribute(TupleAttribute<Tuple, String> typeNameAttribute) throws IOException {
+		this.typeNameAttribute = typeNameAttribute;
+	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies the name for the id. If not specified, id is auto-generated."
+			)
+	public void setIdName(String idName) {
+		this.idName = idName;
+	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies the attribute providing the ID names."
+			)
+	public void setIdNameAttribute(TupleAttribute<Tuple, String> idNameAttribute) throws IOException {
+		this.idNameAttribute = idNameAttribute;
 	}
 	
 	@Parameter(
@@ -146,6 +171,14 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 			)
 	public void setTimestampName(String timestampName) {
 		this.timestampName = timestampName;
+	}
+	
+	@Parameter(
+			optional=true,
+			description="Specifies the attribute providing the timestamp values."
+			)
+	public void setTimestampValueAttribute(TupleAttribute<Tuple, Long> timestampValueAttribute) throws IOException {
+		this.timestampValueAttribute = timestampValueAttribute;
 	}
 	
 	@Parameter(
@@ -172,6 +205,21 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
 		this.sizeMetricsEnabled = sizeMetricsEnabled;
 	}
+	
+	
+	// ------------------------------------------------------------------------
+	// Static variables.
+	// ------------------------------------------------------------------------
+	
+	/**
+	 * Logger for tracing.
+	 */
+	private static Logger _trace = Logger.getLogger(ElasticsearchRestIndex.class.getName());
+	
+	/**
+	 * Property names for size metrics in Elasticsearch.
+	 */
+	private static String SIZE_METRICS_PROPERTY = "_size_metrics";
 
 	
 	// ------------------------------------------------------------------------
@@ -184,10 +232,17 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	private String hostName = "http://localhost";
 	private int hostPort = 9200;
 	
-	private String index;
-	private String type;
-	private String id;
+	private String indexName;
+	private TupleAttribute<Tuple, String> indexNameAttribute;
+
+	private String typeName;
+	private TupleAttribute<Tuple, String> typeNameAttribute;
+
+	private String idName;
+	private TupleAttribute<Tuple, String> idNameAttribute;
+	
 	private String timestampName;
+	private TupleAttribute<Tuple, Long> timestampValueAttribute;
 	
 	private int bulkSize = 1;
 	
@@ -227,11 +282,6 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	private boolean mapperSizeInstalled = false;
 	
 	/**
-	 * Logger for tracing.
-	 */
-	private static Logger _trace = Logger.getLogger(ElasticsearchRestIndex.class.getName());
-	
-	/**
      * Initialize this operator and create Elasticsearch client to send get requests to.
      * @param context OperatorContext for this operator.
      * @throws Exception Operator failure, will cause the enclosing PE to terminate.
@@ -263,56 +313,63 @@ public class ElasticsearchRestIndex extends AbstractOperator {
     @Override
     public void process(StreamingInput<Tuple> stream, Tuple tuple) throws Exception {
     	
-    	// Collect fields to add to JSON output.
+    	// Get attribute names.
 		StreamSchema schema = tuple.getStreamSchema();
     	Set<String> attributeNames = schema.getAttributeNames();
-    	JSONObject jsonFields = new JSONObject();
-	    
-	for (String attributeName : attributeNames) {
-		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
-			jsonFields.put(attributeName, tuple.getObject(attributeName).toString());
-		} else {
-			jsonFields.put(attributeName, tuple.getObject(attributeName));
-		}
-	}
-        
-    	// Add timestamp, if specified, for time-based queries.
-    	if (timestampName != null) {
-    		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
+    	
+    	// Add attribute names/values to jsonDocuments.
+    	JSONObject jsonDocuments = new JSONObject();
+    	for(String attributeName : attributeNames) {
     		
-    		if (attributeNames.contains(timestampName) && schema.getAttribute(timestampName).getType().getMetaType() == Type.MetaType.RSTRING
-        			&& !tuple.getString(timestampName).equals("")) {
-    			String timestampToInsert = tuple.getString(timestampName);
-    			jsonFields.put(timestampName, df.format(timestampToInsert));
+    		// Skip attributes used explicitly for defining index, type, and id.
+    		if (indexNameAttribute != null && indexNameAttribute.getAttribute().getName().equals(attributeName)) {
+    			continue;
+    		} else if (typeNameAttribute != null && typeNameAttribute.getAttribute().getName().equals(attributeName)) {
+    			continue;
+    		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
+    			continue;
+    		}
+    		
+    		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
+    			jsonDocuments.put(attributeName, tuple.getObject(attributeName).toString());
     		} else {
-    			jsonFields.put(timestampName, df.format(new Date(System.currentTimeMillis())));
+    			jsonDocuments.put(attributeName, tuple.getObject(attributeName));
     		}
     	}
+    	
+    	// Add timestamp, if it exists.
+    	Boolean timestampExists = timestampName != null || timestampValueAttribute != null;
+    	if (timestampExists) {
+    		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
+    		
+    		if (timestampName == null) {
+    			timestampName = "timestamp";
+    		}
+    		
+    		String timestampToInsert;
+    		if (timestampValueAttribute != null) {
+    			long timestamp = getTimestampValue(tuple).longValue();
+    			timestampToInsert = df.format(new Date(timestamp));
+    		} else {
+    			timestampToInsert = df.format(new Date(System.currentTimeMillis()));
+    		}
+    		
+    		jsonDocuments.put(timestampName, timestampToInsert);
+    	}
         	
-    	// Get index name/type/id specified inside tuple (default: from params).
-    	String indexToInsert = index;
-    	String typeToInsert = type;
-    	String idToInsert = null;
+    	// Get index, type, and ID.
+    	String indexToInsert = getIndex(tuple);
+    	String typeToInsert = getType(tuple);
+    	String idToInsert = getId(tuple);
     	
-    	if (attributeNames.contains(index) && schema.getAttribute(index).getType().getMetaType() == Type.MetaType.RSTRING
-    			&& !tuple.getString(index).equals("")) {
-    		indexToInsert = tuple.getString(index);
-    	}
-    	
-    	if (attributeNames.contains(type) && schema.getAttribute(type).getType().getMetaType() == Type.MetaType.RSTRING
-    			&& !tuple.getString(type).equals("")) {
-    		typeToInsert = tuple.getString(type);
-    	}
-
-    	if (id != null && attributeNames.contains(id) && schema.getAttribute(id).getType().getMetaType() == Type.MetaType.RSTRING
-    			&& !tuple.getString(id).equals("")) {
-    		idToInsert = tuple.getString(id);
+    	if (indexToInsert == null || typeToInsert == null) {
+    		throw new Exception("Index and type must be defined.");
     	}
     	
     	if (connectedToElasticsearch(indexToInsert, typeToInsert)) {
         	
-    		// Add jsonFields to bulkBuilder.
-        	String source = jsonFields.toString();
+    		// Add jsonDocuments to bulkBuilder.
+        	String source = jsonDocuments.toString();
         	
         	if (idToInsert != null) {
         		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).id(idToInsert).build());
@@ -353,44 +410,7 @@ public class ElasticsearchRestIndex extends AbstractOperator {
     			
     			// Get size metrics for current type.
     			if (sizeMetricsEnabled && mapperSizeInstalled) {
-	    			String query = "{\n" +
-	    	                "    \"query\" : {\n" +
-	    	                "        \"match_all\" : {}\n" +
-	    	                "    },\n" +
-	    	                "    \"aggs\" : {\n" +
-	    	                "        \"size_metrics\" : {\n" +
-	    	                "            \"extended_stats\" : {\n" +
-	    	                "                \"field\" : \"_size\"\n" +
-	    	                "            }\n" +
-	    	                "        }\n" +
-	    	                "    }\n" +
-	    	                "}";
-	    			
-	    	        Search search = new Search.Builder(query)
-	    	                .addIndex(indexToInsert)
-	    	                .addType(typeToInsert)
-	    	                .build();
-	    	        
-	    	        SearchResult searchResult = client.execute(search);
-	    	        
-	    	        if (searchResult.isSucceeded()) {
-		    	        ExtendedStatsAggregation sizeMetrics = searchResult.getAggregations().getExtendedStatsAggregation("size_metrics");
-		    			
-		    	        if (sizeMetrics != null) {
-		    	        	if (sizeMetrics.getAvg() != null) {
-				    			avgInsertSizeBytes.setValue(sizeMetrics.getAvg().longValue());
-		    	        	}
-		    	        	if (sizeMetrics.getMax() != null) {
-		    	        		maxInsertSizeBytes.setValue(sizeMetrics.getMax().longValue());
-		    	        	}
-		    	        	if (sizeMetrics.getMin() != null) {
-		    	        		minInsertSizeBytes.setValue(sizeMetrics.getMin().longValue());
-		    	        	}
-		    	        	if (sizeMetrics.getSum() != null) {
-		    	        		sumInsertSizeBytes.setValue(sizeMetrics.getSum().longValue());
-		    	        	}
-		    	        }
-	    	        }
+	    			getAndSetSizeMetrics(indexToInsert, typeToInsert, idToInsert);
     			}
     		}
     	}
@@ -409,6 +429,121 @@ public class ElasticsearchRestIndex extends AbstractOperator {
         client.shutdownClient();
         
         super.shutdown();
+    }
+    
+    /**
+     * Get index from either the indexName or indexNameAttribute. indexNameAttribute 
+     * overrides indexName.
+     * @param tuple
+     * @return
+     */
+    private String getIndex(Tuple tuple) {
+    	if (indexNameAttribute != null) {
+    		String index = indexNameAttribute.getValue(tuple);
+    		if (!index.isEmpty()) {
+    			return index;
+    		}
+    	} else if (indexName != null) {
+    		return indexName;
+    	}
+    	return null;
+    }
+    
+    /**
+     * Get type from either the typeName or typeNameAttribute. typeNameAttribute 
+     * overrides typeName.
+     * @param tuple
+     * @return
+     */
+    private String getType(Tuple tuple) {
+    	if (typeNameAttribute != null) {
+    		String index = typeNameAttribute.getValue(tuple);
+    		if (!index.isEmpty()) {
+    			return index;
+    		}
+    	} else if (typeName != null) {
+    		return typeName;
+    	}
+    	return null;
+    }
+    
+    /**
+     * Get ID from either the idName or idNameAttribute. idNameAttribute 
+     * overrides idName.
+     * @param tuple
+     * @return
+     */
+    private String getId(Tuple tuple) {
+    	if (idNameAttribute != null) {
+    		String index = idNameAttribute.getValue(tuple);
+    		if (!index.isEmpty()) {
+    			return index;
+    		}
+    	} else if (idName != null) {
+    		return idName;
+    	}
+    	return null;
+    }
+    
+    /**
+     * Get timestamp from either the timestampName or timestampValueAttribute. timestampValueAttribute 
+     * overrides timestampName.
+     * @param tuple
+     * @return
+     */
+    private Long getTimestampValue(Tuple tuple) {
+    	if (timestampValueAttribute != null) {
+    		return timestampValueAttribute.getValue(tuple);
+    	}
+    	return null;
+    }
+    
+    /**
+     * Get and set size metrics.
+     * @param indexToInsert
+     * @param typeToInsert
+     * @param idToInsert
+     * @throws IOException 
+     */
+    private void getAndSetSizeMetrics(String indexToInsert, String typeToInsert, String idToInsert) throws IOException {
+    	String query = "{\n" +
+                "    \"query\" : {\n" +
+                "        \"match_all\" : {}\n" +
+                "    },\n" +
+                "    \"aggs\" : {\n" +
+                "        \"size_metrics\" : {\n" +
+                "            \"extended_stats\" : {\n" +
+                "                \"field\" : \"_size\"\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+		
+        Search search = new Search.Builder(query)
+                .addIndex(indexToInsert)
+                .addType(typeToInsert)
+                .build();
+        
+        SearchResult searchResult = client.execute(search);
+        
+        if (searchResult.isSucceeded()) {
+	        ExtendedStatsAggregation sizeMetrics = searchResult.getAggregations().getExtendedStatsAggregation(SIZE_METRICS_PROPERTY);
+			
+	        if (sizeMetrics != null) {
+	        	if (sizeMetrics.getAvg() != null) {
+	    			avgInsertSizeBytes.setValue(sizeMetrics.getAvg().longValue());
+	        	}
+	        	if (sizeMetrics.getMax() != null) {
+	        		maxInsertSizeBytes.setValue(sizeMetrics.getMax().longValue());
+	        	}
+	        	if (sizeMetrics.getMin() != null) {
+	        		minInsertSizeBytes.setValue(sizeMetrics.getMin().longValue());
+	        	}
+	        	if (sizeMetrics.getSum() != null) {
+	        		sumInsertSizeBytes.setValue(sizeMetrics.getSum().longValue());
+	        	}
+	        }
+        }
     }
     
     /**
