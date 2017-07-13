@@ -167,6 +167,14 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	
 	@Parameter(
 			optional=true,
+			description="Enables storing timestamps."
+			)
+	public void setStoreTimestamps(boolean storeTimestamps) {
+		this.storeTimestamps = storeTimestamps;
+	}
+	
+	@Parameter(
+			optional=true,
 			description="Specifies the name for the timestamp attribute."
 			)
 	public void setTimestampName(String timestampName) {
@@ -241,7 +249,8 @@ public class ElasticsearchRestIndex extends AbstractOperator {
 	private String idName;
 	private TupleAttribute<Tuple, String> idNameAttribute;
 	
-	private String timestampName;
+	private boolean storeTimestamps = false;
+	private String timestampName = "timestamp";
 	private TupleAttribute<Tuple, Long> timestampValueAttribute;
 	
 	private int bulkSize = 1;
@@ -321,12 +330,14 @@ public class ElasticsearchRestIndex extends AbstractOperator {
     	JSONObject jsonDocuments = new JSONObject();
     	for(String attributeName : attributeNames) {
     		
-    		// Skip attributes used explicitly for defining index, type, and id.
+    		// Skip attributes used explicitly for defining index, type, id, and timestamps.
     		if (indexNameAttribute != null && indexNameAttribute.getAttribute().getName().equals(attributeName)) {
     			continue;
     		} else if (typeNameAttribute != null && typeNameAttribute.getAttribute().getName().equals(attributeName)) {
     			continue;
     		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
+    			continue;
+    		} else if (timestampValueAttribute != null && timestampValueAttribute.getAttribute().getName().equals(attributeName)) {
     			continue;
     		}
     		
@@ -337,14 +348,9 @@ public class ElasticsearchRestIndex extends AbstractOperator {
     		}
     	}
     	
-    	// Add timestamp, if it exists.
-    	Boolean timestampExists = timestampName != null || timestampValueAttribute != null;
-    	if (timestampExists) {
+    	// Add timestamp, if enabled.
+    	if (storeTimestamps) {
     		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
-    		
-    		if (timestampName == null) {
-    			timestampName = "timestamp";
-    		}
     		
     		String timestampToInsert;
     		if (timestampValueAttribute != null) {
