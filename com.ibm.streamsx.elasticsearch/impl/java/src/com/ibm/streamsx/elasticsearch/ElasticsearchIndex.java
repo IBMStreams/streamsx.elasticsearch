@@ -117,6 +117,14 @@ public class ElasticsearchIndex extends AbstractOperator {
 	
 	@Parameter(
 			optional=true,
+			description="Specifies the name for the cluster."
+			)
+	public void setClusterName(String clusterName) {
+		this.clusterName = clusterName;
+	}
+	
+	@Parameter(
+			optional=true,
 			description="Specifies the name for the index."
 			)
 	public void setIndexName(String indexName) {
@@ -161,6 +169,14 @@ public class ElasticsearchIndex extends AbstractOperator {
 			)
 	public void setIdNameAttribute(TupleAttribute<Tuple, String> idNameAttribute) throws IOException {
 		this.idNameAttribute = idNameAttribute;
+	}
+	
+	@Parameter(
+			optional=true,
+			description="Enables storing timestamps."
+			)
+	public void setStoreTimestamps(boolean storeTimestamps) {
+		this.storeTimestamps = storeTimestamps;
 	}
 	
 	@Parameter(
@@ -225,10 +241,12 @@ public class ElasticsearchIndex extends AbstractOperator {
 	// ------------------------------------------------------------------------
 
 	/**
-	 * Elasticsearch parameters.
+	 * ElasticsearchIndex parameters.
 	 */
 	private String hostName = "127.0.0.1";
 	private int hostPort = 9300;
+	
+	private String clusterName = "elasticsearch";
 	
 	private String indexName;
 	private TupleAttribute<Tuple, String> indexNameAttribute;
@@ -239,7 +257,8 @@ public class ElasticsearchIndex extends AbstractOperator {
 	private String idName;
 	private TupleAttribute<Tuple, String> idNameAttribute;
 	
-	private String timestampName;
+	private boolean storeTimestamps = false;
+	private String timestampName = "timestamp";
 	private TupleAttribute<Tuple, Long> timestampValueAttribute;
 	
 	private int bulkSize = 1;
@@ -289,7 +308,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 		super.initialize(context);
 
     	// Create client that's connected to Elasticsearch server.
-        Settings settings = Settings.builder().put("cluster.name","elasticsearch").build();
+        Settings settings = Settings.builder().put("cluster.name", clusterName).build();
         InetAddress hostAddress = InetAddress.getByName(hostName);
         client = new PreBuiltTransportClient(settings).addTransportAddress(new InetSocketTransportAddress(hostAddress, hostPort));
 	}
@@ -322,6 +341,8 @@ public class ElasticsearchIndex extends AbstractOperator {
     			continue;
     		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
     			continue;
+    		} else if (timestampValueAttribute != null && timestampValueAttribute.getAttribute().getName().equals(attributeName)) {
+    			continue;
     		}
     		
     		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
@@ -332,13 +353,8 @@ public class ElasticsearchIndex extends AbstractOperator {
     	}
 
     	// Add timestamp, if it exists.
-    	Boolean timestampExists = timestampName != null || timestampValueAttribute != null;
-    	if (timestampExists) {
+    	if (storeTimestamps) {
     		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
-    		
-    		if (timestampName == null) {
-    			timestampName = "timestamp";
-    		}
     		
     		String timestampToInsert;
     		if (timestampValueAttribute != null) {
