@@ -163,12 +163,12 @@ public class ECGSimulator extends AbstractOperator {
         		// Get ECG data.
         		String[] lineValues = line.split(SEPARATOR);
         		double value = Double.valueOf(lineValues[1]);
-        		double time = System.currentTimeMillis();
+        		long time = System.currentTimeMillis();
         		
         		// Set value in new tuple.
                 OutputTuple tuple = out.newTuple();
                 tuple.setDouble(ECG_VALUE, value);
-                tuple.setDouble(TIMESTAMP, time);
+                tuple.setLong(TIMESTAMP, time);
         		
         		// Output new tuple to output stream.
                 out.submit(tuple);

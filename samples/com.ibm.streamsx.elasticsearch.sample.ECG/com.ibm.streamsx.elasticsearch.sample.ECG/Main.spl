@@ -24,7 +24,7 @@ composite Main
 		 * The ECGSimulator simulates ECG Lead II values and outputs them, along 
 		 * with a time-stamp.
 		 */
-		stream<float64 ecg_value, float64 ecg_timestamp> ECGData = ECGSimulator()
+		stream<float64 ecg_value, int64 ecg_timestamp> ECGData = ECGSimulator()
 		{
 			param
 				csvPath : dataDirectory() + "/ecgII.csv" ;
@@ -40,7 +40,8 @@ composite Main
 			param
 				indexName : "ecg_index" ;
 				typeName : "ecg_type" ;
-				timestampName : "ecg_timestamp" ;
+				storeTimestamps : true ;
+				timestampValueAttribute : ecg_timestamp ;
 		}
 
 }
