@@ -21,26 +21,33 @@
 	<property name="override.dir" value="opt/local_override" />
 	<property name="impl.lib.dir" value="impl/lib" />
 	<property name="lib.dir" value="lib" />
+	<property name="spl-mt" value="${streams.install}/bin/spl-make-toolkit" />
+	<property name="jarfile" value="com.ibm.streamsx.elasticsearch.jar" />
 	<property name="test.run.dir" value="tests" />
 	<property name="test.build.dir" value="${test.run.dir}/bin" />
 	
-	<target name="init">
-		<mkdir dir="${build.dir}" />
-		<mkdir dir="${override.dir}" />
-		<mkdir dir="${lib.dir}" />
-		<mkdir dir="${impl.lib.dir}" />
-		<mkdir dir="${ext.downloads.dir}" />
-		<mkdir dir="${ext.downloads.dir.all}" />
-	</target>
+    <target name="init">
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${override.dir}" />
+        <mkdir dir="${lib.dir}" />
+        <mkdir dir="${impl.lib.dir}" />
+        <mkdir dir="${ext.downloads.dir}" />
+        <mkdir dir="${ext.downloads.dir.all}" />
+    </target>
 
 	<target name="clean">
+        <!-- toolkit clean -->
+        <exec executable="${spl-mt}"  failonerror="true">
+            <arg value="-c"/>
+            <arg value="--directory"/>
+            <arg value="${basedir}"/>
+        </exec>
 		<delete dir="${build.dir}" />
 		<delete dir="${impl.lib.dir}" />
 		<delete dir="output"/>
 		<delete dir="${test.run.dir}"/>
 		<delete dir="${test.build.dir}"/>
 	</target>
-
 
 	<target name="distclean" depends="clean">
 		<delete dir="${ext.downloads.dir}" />
@@ -64,13 +71,14 @@
 		</fileset>
 	</path>
 
-	<target name="all" depends="jar">
-	 <exec executable="${streams.install}/bin/spl-make-toolkit">
+    <target name="all" depends="indexToolkit"/>
+
+	<target name="indexToolkit" depends="jar">
+	 <exec executable="${spl-mt}">
            <arg value="--directory"/>
            <arg value="${basedir}"/>
 	 </exec>
 	</target>
-
 	
 	<target name="compile" depends="init,maven-deps">
 		<javac srcdir="${src.dir}" destdir="${build.dir}" debug="true"
@@ -83,13 +91,10 @@
 	</target>
 
 	<target name="jar" depends="compile">
-		
-		<jar destfile="${impl.lib.dir}/com.ibm.streamsx.elasticsearch.jar" basedir="${build.dir}" includes="com/ibm/streamsx/elasticsearch/**" filesonly="true">
-	
-		</jar>
+		<jar destfile="${impl.lib.dir}/${jarfile}" basedir="${build.dir}" includes="com/ibm/streamsx/elasticsearch/**" filesonly="true"/>
 		<delete dir="${build.dir}" />
 	</target>
-
+	
 	<!-- Downloads libraries using maven -->
 	<target name="maven-deps" depends="init,nomaven" if="env.M2_HOME">
 		<fail unless="pomset" message="There must be a pom.xml file in com.ibm.streamsx.elasticsearch in order to use maven to download necessary dependencies.  Three sample pom files are included: pom-v094.xml (hbase 0.94, hadoop 1),pom-v096-hadoop1.xml (hbase 0.96, hadoop 1), and  pom-v096-hadoop2.xml (hbase 0.96, hadoop 2).  Please rename the correct one for your install to pom.xml"/> 

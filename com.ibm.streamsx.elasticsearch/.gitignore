@@ -1,6 +1,11 @@
-/.apt_generated/
-/output/
-/.toolkitList
-/toolkit.xml
-/doc/
 /bin/
+/doc/
+/opt/
+/output/
+/.apt_generated/
+
+/.*~
+/*~
+.toolkitList
+toolkit.xml
+
