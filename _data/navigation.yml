@@ -1,0 +1,39 @@
+# main links
+main:
+  - title: "User Documentation"
+    url: /docs/user/overview
+  - title: "Developer Documentation"
+    url: /docs/developer/overview
+
+# user documentation links
+userdocs:
+  - title: User documentation
+    children:
+      - title: "Overview"
+        url: /docs/user/overview
+      - title: "Basic usage"
+        url: /docs/user/basicuseage
+      - title: "Basic Samples"
+        url: /docs/user/basicsamples
+      - title: "Advanced usage"
+        url: /docs/user/advancedusage
+      - title: "Advanced Samples"
+        url: /docs/user/advancedsamples
+
+# developer documentation links
+developerdocs:
+  - title: Developer documentation
+    children:
+      - title: "General Toolkit development"
+        url: /docs/development/overview
+      - title: "Requirements"
+        url: /docs/development/requirements
+      - title: "Design"
+        url: /docs/development/design
+      - title: "Build"
+        url: /docs/development/build
+      - title: "Implementation"
+        url: /docs/development/implementation
+      - title: "Test"
+        url: /docs/development/test
+
