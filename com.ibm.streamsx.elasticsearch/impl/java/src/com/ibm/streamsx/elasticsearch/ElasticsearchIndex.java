@@ -42,7 +42,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -310,7 +310,7 @@ public class ElasticsearchIndex extends AbstractOperator {
     	// Create client that's connected to Elasticsearch server.
         Settings settings = Settings.builder().put("cluster.name", clusterName).build();
         InetAddress hostAddress = InetAddress.getByName(hostName);
-        client = new PreBuiltTransportClient(settings).addTransportAddress(new InetSocketTransportAddress(hostAddress, hostPort));
+        client = new PreBuiltTransportClient(settings).addTransportAddress(new TransportAddress(hostAddress, hostPort));
 	}
 
 	/**
