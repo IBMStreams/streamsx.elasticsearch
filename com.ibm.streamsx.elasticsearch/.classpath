@@ -12,7 +12,6 @@
 	<classpathentry kind="lib" path="opt/downloaded/commons-lang3-3.4.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/commons-logging-1.2.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/compiler-0.9.3.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-5.4.2.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/gson-2.4.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/guava-18.0.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/HdrHistogram-2.1.9.jar"/>
@@ -21,50 +20,54 @@
 	<classpathentry kind="lib" path="opt/downloaded/httpclient-4.5.1.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/httpcore-4.4.4.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/httpcore-nio-4.4.4.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/jackson-core-2.8.6.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/jackson-dataformat-cbor-2.8.6.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/jackson-dataformat-smile-2.8.6.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/jackson-dataformat-yaml-2.8.6.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/jest-2.0.0.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/jest-common-2.0.0.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/jna-4.4.0.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/joda-time-2.9.5.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/jopt-simple-5.0.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lang-mustache-client-5.4.2.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/log4j-api-2.8.2.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/log4j-core-2.8.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-analyzers-common-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-backward-codecs-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-core-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-grouping-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-highlighter-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-join-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-memory-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-misc-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-queries-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-queryparser-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-sandbox-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-spatial-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-spatial-extras-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-spatial3d-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/lucene-suggest-6.5.1.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-3.10.6.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-buffer-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-codec-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-codec-http-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-common-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-handler-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-resolver-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/netty-transport-4.1.11.Final.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/percolator-client-5.4.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/reindex-client-5.4.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/rest-5.4.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/securesm-1.1.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/slf4j-api-1.7.13.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/snakeyaml-1.15.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/t-digest-3.0.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/transport-5.4.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/transport-netty3-client-5.4.2.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/transport-netty4-client-5.4.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/jackson-core-2.8.10.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/jackson-dataformat-cbor-2.8.10.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/jackson-dataformat-smile-2.8.10.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/jackson-dataformat-yaml-2.8.10.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/jna-4.5.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/joda-time-2.9.9.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-buffer-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-codec-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-codec-http-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-common-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-handler-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-resolver-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/netty-transport-4.1.16.Final.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/snakeyaml-1.17.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-cli-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-core-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-rest-client-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-secure-sm-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/elasticsearch-x-content-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lang-mustache-client-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-analyzers-common-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-backward-codecs-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-core-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-grouping-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-highlighter-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-join-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-memory-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-misc-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-queries-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-queryparser-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-sandbox-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-spatial-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-spatial-extras-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-spatial3d-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/lucene-suggest-7.3.1.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/parent-join-client-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/percolator-client-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/rank-eval-client-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/reindex-client-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/t-digest-3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/transport-6.3.2.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/transport-netty4-client-6.3.2.jar"/>
 	<classpathentry kind="output" path="impl/java/bin"/>
 </classpath>
