@@ -4,12 +4,12 @@
   <groupId>com.ibm.streamsx.elasticsearch</groupId>
   <artifactId>streamsx.elasticsearch</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <dependencies>
     <dependency>
       <groupId>io.searchbox</groupId>
       <artifactId>jest</artifactId>
-      <version>2.0.0</version>
+      <version>6.3.1</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
