@@ -83,7 +83,7 @@
 	
 	<target name="compile" depends="init,maven-deps">
 		<javac srcdir="${src.dir}" destdir="${build.dir}" debug="true"
-			includeantruntime="no">
+			includeantruntime="no" deprecation="true">
 			<classpath>
 				<path refid="cp.streams" />
 				<path refid="cp.elasticsearch" />
