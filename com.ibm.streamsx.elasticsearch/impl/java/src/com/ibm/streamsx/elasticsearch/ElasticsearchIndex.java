@@ -29,6 +29,7 @@ import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streams.operator.model.InputPortSet;
 import com.ibm.streams.operator.model.InputPortSet.WindowMode;
 import com.ibm.streams.operator.model.InputPortSet.WindowPunctuationInputMode;
+import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.internal.SizeMapping;
 import com.ibm.streams.operator.model.InputPorts;
 import com.ibm.streams.operator.model.Libraries;
@@ -67,7 +68,7 @@ import io.searchbox.indices.IndicesExists;
 @Libraries({
 	"opt/downloaded/*"
 	})
-public class ElasticsearchIndex extends AbstractOperator {
+public class ElasticsearchIndex extends AbstractElasticsearchOperator {
 
 	// ------------------------------------------------------------------------
 	// Documentation.
@@ -97,25 +98,25 @@ public class ElasticsearchIndex extends AbstractOperator {
 			+ "\\n"
 			;
 	
-	@Parameter(
-			optional=true,
-			description="Specifies the hostname of the Elasticsearch server (default: localhost)."
-			)
-	public void setHostName(String hostName) {
-		if (hostName.matches("^http://.*")) {
-			this.hostName = hostName;
-		} else {
-	 		this.hostName = "http://" + hostName;
- 		}
-	}
-
-	@Parameter(
-			optional=true,
-			description="Specifies the hostport of the Elasticsearch server (default: 9300)."
-			)
-	public void setHostPort(int hostPort) {
-		this.hostPort = hostPort;
-	}
+//	@Parameter(
+//			optional=true,
+//			description="Specifies the hostname of the Elasticsearch server (default: localhost)."
+//			)
+//	public void setHostName(String hostName) {
+//		if (hostName.matches("^http://.*")) {
+//			this.hostName = hostName;
+//		} else {
+//	 		this.hostName = "http://" + hostName;
+// 		}
+//	}
+//
+//	@Parameter(
+//			optional=true,
+//			description="Specifies the hostport of the Elasticsearch server (default: 9300)."
+//			)
+//	public void setHostPort(int hostPort) {
+//		this.hostPort = hostPort;
+//	}
 	
 	@Parameter(
 			optional=true,
@@ -197,14 +198,14 @@ public class ElasticsearchIndex extends AbstractOperator {
 		this.bulkSize = bulkSize;
 	}
 	
-	@Parameter(
-			optional=true,
-			description="Specifies the number of times to attempt reconnection to the "
-					+ "Elasticsearch server, upon disconnection."
-			)
-	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
-		this.reconnectionPolicyCount = (long)reconnectionPolicyCount;
-	}
+//	@Parameter(
+//			optional=true,
+//			description="Specifies the number of times to attempt reconnection to the "
+//					+ "Elasticsearch server, upon disconnection."
+//			)
+//	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
+//		this.reconnectionPolicyCount = (long)reconnectionPolicyCount;
+//	}
 	
 	@Parameter(
 			optional=true,
@@ -222,7 +223,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 	/**
 	 * Logger for tracing.
 	 */
-	private static Logger _trace = Logger.getLogger(ElasticsearchIndex.class.getName());
+	private static Logger logger = Logger.getLogger(ElasticsearchIndex.class.getName());
 	
 	/**
 	 * Property names for size metrics in Elasticsearch.
@@ -237,8 +238,8 @@ public class ElasticsearchIndex extends AbstractOperator {
 	/**
 	 * Elasticsearch parameters.
 	 */
-	private String hostName = "http://localhost";
-	private int hostPort = 9200;
+//	private String hostName = "http://localhost";
+//	private int hostPort = 9200;
 	
 	private String indexName;
 	private TupleAttribute<Tuple, String> indexNameAttribute;
@@ -261,6 +262,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 	private JestClient client;
 	private Builder bulkBuilder;
 	private int currentBulkSize = 0;
+	private Configuration config = null;
 	
 	/**
 	 * Metrics
@@ -278,7 +280,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 	/**
 	 * Metric parameters.
 	 */
-	private long reconnectionPolicyCount = 1;
+//	private long reconnectionPolicyCount = 1;
 	
 	/**
 	 * Size metrics should be gathered.
@@ -298,11 +300,15 @@ public class ElasticsearchIndex extends AbstractOperator {
 	@Override
 	public synchronized void initialize(OperatorContext context) throws Exception {
 		super.initialize(context);
+        logger.trace("Operator " + context.getName() + " initializing in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId());
 
         // Construct a new Jest client according to configuration via factory
+        config = getClientConfiguration();
+        System.out.println(config.toString());
+        
         JestClientFactory factory = new JestClientFactory();
         factory.setHttpClientConfig(new HttpClientConfig
-                               .Builder(hostName + ":" + hostPort)
+                               .Builder(config.getNodeList())
                                .multiThreaded(true)
                                .build());
         
@@ -393,7 +399,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 	        	try {
 		        	result = client.execute(bulk);
 	        	} catch (NoHttpResponseException e) {
-	        		_trace.error(e);
+	        		logger.error(e);
 	        		return;
 	        	}
 	        	
@@ -560,9 +566,9 @@ public class ElasticsearchIndex extends AbstractOperator {
     private Boolean connectedToElasticsearch(String indexToInsert, String typeToInsert) throws IOException {
     	
     	// Keep trying to reconnect until reconnectionPolicyCount met.
-    	long reconnectionAttempts = 0;
+    	int reconnectionAttempts = 0;
     	reconnectionCount.setValue(0);
-    	while (reconnectionAttempts < reconnectionPolicyCount) {
+    	while (reconnectionAttempts < config.getReconnectionPolicyCount()) {
 	    	try {
 				// Create index if it doesn't exist.
 	    		boolean indexExists = client.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
@@ -583,7 +589,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 					if (result.isSucceeded()) {
 						mapperSizeInstalled = true;
 					} else {
-						_trace.error("Mapper size plugin was not detected. Please try restarting the Elasticsearch server after install.");
+						logger.error("Mapper size plugin was not detected. Please try restarting the Elasticsearch server after install.");
 					}
 				}
 
@@ -598,7 +604,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 				return true;
 				
 	        } catch (HttpHostConnectException e) {
-	        	_trace.error(e);
+	        	logger.error(e);
 	        	
 	        	isConnected.setValue(0);
 	        	reconnectionAttempts++;
@@ -606,7 +612,7 @@ public class ElasticsearchIndex extends AbstractOperator {
 	        }
     	}
     	
-    	_trace.error("Reconnection policy count, " + reconnectionPolicyCount + ", reached. Operator still not connected to server.");
+    	logger.error("Reconnection policy count, " + config.getReconnectionPolicyCount() + ", reached. Operator still not connected to server.");
     	return false;
     }
     
