@@ -51,6 +51,7 @@
 
 	<target name="distclean" depends="clean">
 		<delete dir="${ext.downloads.dir}" />
+		<delete dir="${ext.downloads.dir.all}" />
 	</target>
 
 

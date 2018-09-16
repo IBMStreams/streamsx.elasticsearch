@@ -8,7 +8,7 @@
 package com.ibm.streamsx.elasticsearch.internal;
 
 import com.ibm.json.java.JSONObject;
-
+import io.searchbox.client.config.ElasticsearchVersion;
 import io.searchbox.action.GenericResultAbstractAction;
 
 public class SizeMapping extends GenericResultAbstractAction {
@@ -23,12 +23,15 @@ public class SizeMapping extends GenericResultAbstractAction {
         this.indexName = builder.index;
         this.typeName = builder.type;
         this.payload = builder.source;
-        setURI(buildURI());
     }
 
     @Override
-    protected String buildURI() {
-        return super.buildURI().replaceFirst(this.typeName, MAPPING_ATTR + "/" + this.typeName);
+    public String getURI(ElasticsearchVersion elasticsearchVersion) {
+        return buildURI(elasticsearchVersion);
+    }
+    
+    protected String buildURI(ElasticsearchVersion elasticsearchVersion) {
+        return super.buildURI(elasticsearchVersion).replaceFirst(this.typeName, MAPPING_ATTR + "/" + this.typeName);
     }
 
     @Override

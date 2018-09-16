@@ -31,6 +31,10 @@
   	<!--ant dir="${toolkit.test}" target="clean"/-->
   </target>
 
+  <target name="distclean" depends="clean" description="Clean all, inclusive maven downloads" >
+	  	<ant dir="${toolkit}" target="distclean"/>
+  </target>
+
   <target name="toolkit"
         description="Build any code and index the toolkit." >
   	<ant dir="${toolkit}" target="all"/>
