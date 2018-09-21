@@ -16,8 +16,8 @@ import java.util.Set;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.log4j.Logger;
+
 import com.ibm.json.java.JSONObject;
-import com.ibm.streams.operator.AbstractOperator;
 import com.ibm.streams.operator.OperatorContext;
 import com.ibm.streams.operator.StreamSchema;
 import com.ibm.streams.operator.StreamingInput;
@@ -29,17 +29,16 @@ import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streams.operator.model.InputPortSet;
 import com.ibm.streams.operator.model.InputPortSet.WindowMode;
 import com.ibm.streams.operator.model.InputPortSet.WindowPunctuationInputMode;
-import com.ibm.streamsx.elasticsearch.client.Configuration;
-import com.ibm.streamsx.elasticsearch.internal.SizeMapping;
 import com.ibm.streams.operator.model.InputPorts;
-import com.ibm.streams.operator.model.Libraries;
 import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streams.operator.model.PrimitiveOperator;
+import com.ibm.streamsx.elasticsearch.client.Client;
+import com.ibm.streamsx.elasticsearch.client.Configuration;
+import com.ibm.streamsx.elasticsearch.client.JESTClient;
+import com.ibm.streamsx.elasticsearch.internal.SizeMapping;
 
 import io.searchbox.client.JestClient;
-import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.JestResult;
-import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.BulkResult;
@@ -51,174 +50,36 @@ import io.searchbox.core.search.aggregation.ExtendedStatsAggregation;
 import io.searchbox.indices.CreateIndex;
 import io.searchbox.indices.IndicesExists;
 
-@PrimitiveOperator(
-		name="ElasticsearchIndex",
-		namespace="com.ibm.streamsx.elasticsearch",
-		description=ElasticsearchIndex.DESC_OPERATOR
-		)
-@InputPorts({
-	@InputPortSet(
-			description="Port that ingests tuples",
-			cardinality=1,
-			optional=false,
-			windowingMode=WindowMode.NonWindowed,
-			windowPunctuationInputMode=WindowPunctuationInputMode.Oblivious
-			)
+@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription)
+@InputPorts({@InputPortSet(
+		id="0",
+		description=ElasticsearchIndex.iport0Description,
+		cardinality=1,
+		optional=false,
+		windowingMode=WindowMode.NonWindowed,
+		windowPunctuationInputMode=WindowPunctuationInputMode.Oblivious)
 })
-@Libraries({
-	"opt/downloaded/*"
-	})
-public class ElasticsearchIndex extends AbstractElasticsearchOperator {
+public class ElasticsearchIndex extends AbstractElasticsearchOperator
+{
+	// operator parameter members --------------------------------------------------------------------------- 
+	
+	private int bulkSize = 1;
+	private boolean sizeMetricsEnabled = false;
+	
+	private String indexName;
+	private TupleAttribute<Tuple, String> indexNameAttribute;
 
-	// ------------------------------------------------------------------------
-	// Documentation.
-	// Attention: To add a newline, use \\n instead of \n.
-	// ------------------------------------------------------------------------
+	private String typeName;
+	private TupleAttribute<Tuple, String> typeNameAttribute;
 
-	static final String DESC_OPERATOR = 
-			"The ElasticsearchIndex operator receives incoming tuples and outputs "
-			+ "the attribute's name-value pairs to an Elasticsearch database.\\n"
-			+ "\\n"
-			+ "The ElasticsearchIndex requires a hostname and hostport of an "
-			+ "Elasticsearch server to connect to.\\n"
-			+ "\\n"
-			+ "By default, the hostname is 'localhost', and the hostport "
-			+ "is 9200. This configuration can be changed in the parameters.\\n"
-			+ "\\n"
-			+ "An index and type must also be specified. The id is optional and if"
-			+ "not specified, it is auto-generated.\\n"
-			+ "\\n"
-			+ "A timestampName can optionally be specified for time-based queries "
-			+ "to create time-series charts that display how a tuple's attribute value "
-			+ "changes over time.\\n"
-			+ "\\n"
-			+ "Once the data is outputted to Elasticsearch, the user can query the "
-			+ "database and create custom graphs to display this data with graphing "
-			+ "tools such as Grafana and Kibana.\\n"
-			+ "\\n"
-			;
+	private String idName;
+	private TupleAttribute<Tuple, String> idNameAttribute;
 	
-//	@Parameter(
-//			optional=true,
-//			description="Specifies the hostname of the Elasticsearch server (default: localhost)."
-//			)
-//	public void setHostName(String hostName) {
-//		if (hostName.matches("^http://.*")) {
-//			this.hostName = hostName;
-//		} else {
-//	 		this.hostName = "http://" + hostName;
-// 		}
-//	}
-//
-//	@Parameter(
-//			optional=true,
-//			description="Specifies the hostport of the Elasticsearch server (default: 9300)."
-//			)
-//	public void setHostPort(int hostPort) {
-//		this.hostPort = hostPort;
-//	}
+	private boolean storeTimestamps = false;	
+	private String timestampName = "timestamp";
+	private TupleAttribute<Tuple, Long> timestampValueAttribute;
 	
-	@Parameter(
-			optional=true,
-			description="Specifies the name for the index."
-			)
-	public void setIndexName(String indexName) {
-		this.indexName = indexName;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the attribute providing the index names."
-			)
-	public void setIndexNameAttribute(TupleAttribute<Tuple, String> indexNameAttribute) throws IOException {
-		this.indexNameAttribute = indexNameAttribute;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the name for the type."
-			)
-	public void setTypeName(String typeName) {
-		this.typeName = typeName;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the attribute providing the type names."
-			)
-	public void setTypeNameAttribute(TupleAttribute<Tuple, String> typeNameAttribute) throws IOException {
-		this.typeNameAttribute = typeNameAttribute;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the name for the id. If not specified, id is auto-generated."
-			)
-	public void setIdName(String idName) {
-		this.idName = idName;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the attribute providing the ID names."
-			)
-	public void setIdNameAttribute(TupleAttribute<Tuple, String> idNameAttribute) throws IOException {
-		this.idNameAttribute = idNameAttribute;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Enables storing timestamps."
-			)
-	public void setStoreTimestamps(boolean storeTimestamps) {
-		this.storeTimestamps = storeTimestamps;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the name for the timestamp attribute."
-			)
-	public void setTimestampName(String timestampName) {
-		this.timestampName = timestampName;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the attribute providing the timestamp values."
-			)
-	public void setTimestampValueAttribute(TupleAttribute<Tuple, Long> timestampValueAttribute) throws IOException {
-		this.timestampValueAttribute = timestampValueAttribute;
-	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies the size of the bulk to submit to Elasticsearch."
-			)
-	public void setBulkSize(int bulkSize) {
-		this.bulkSize = bulkSize;
-	}
-	
-//	@Parameter(
-//			optional=true,
-//			description="Specifies the number of times to attempt reconnection to the "
-//					+ "Elasticsearch server, upon disconnection."
-//			)
-//	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
-//		this.reconnectionPolicyCount = (long)reconnectionPolicyCount;
-//	}
-	
-	@Parameter(
-			optional=true,
-			description="Specifies whether to store and aggregate size metrics."
-			)
-	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
-		this.sizeMetricsEnabled = sizeMetricsEnabled;
-	}
-	
-	
-	// ------------------------------------------------------------------------
-	// Static variables.
-	// ------------------------------------------------------------------------
+	// internal members -------------------------------------------------------------------------------------
 	
 	/**
 	 * Logger for tracing.
@@ -230,36 +91,11 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
 	 */
 	private static String SIZE_METRICS_PROPERTY = "_size_metrics";
 
-	
-	// ------------------------------------------------------------------------
-	// Implementation.
-	// ------------------------------------------------------------------------
-
-	/**
-	 * Elasticsearch parameters.
-	 */
-//	private String hostName = "http://localhost";
-//	private int hostPort = 9200;
-	
-	private String indexName;
-	private TupleAttribute<Tuple, String> indexNameAttribute;
-
-	private String typeName;
-	private TupleAttribute<Tuple, String> typeNameAttribute;
-
-	private String idName;
-	private TupleAttribute<Tuple, String> idNameAttribute;
-	
-	private boolean storeTimestamps = false;
-	private String timestampName = "timestamp";
-	private TupleAttribute<Tuple, Long> timestampValueAttribute;
-	
-	private int bulkSize = 1;
-	
 	/**
 	 * Elasticsearch Jest API.
 	 */
-	private JestClient client;
+	private Client client;
+	private JestClient rawClient;
 	private Builder bulkBuilder;
 	private int currentBulkSize = 0;
 	private Configuration config = null;
@@ -278,16 +114,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
 	private Metric sumInsertSizeBytes;
 	
 	/**
-	 * Metric parameters.
-	 */
-//	private long reconnectionPolicyCount = 1;
-	
-	/**
-	 * Size metrics should be gathered.
-	 */
-	private boolean sizeMetricsEnabled = false;
-	
-	/**
 	 * Mapper size plugin is installed.
 	 */
 	private boolean mapperSizeInstalled = false;
@@ -302,17 +128,18 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
 		super.initialize(context);
         logger.trace("Operator " + context.getName() + " initializing in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId());
 
-        // Construct a new Jest client according to configuration via factory
+        // Construct a new client config object
         config = getClientConfiguration();
+        logger.debug(config.toString());
+        // TODO remove after testing
         System.out.println(config.toString());
         
-        JestClientFactory factory = new JestClientFactory();
-        factory.setHttpClientConfig(new HttpClientConfig
-                               .Builder(config.getNodeList())
-                               .multiThreaded(true)
-                               .build());
-        
-        client = factory.getObject();
+        // create client 
+        // TODO add robust error checking here
+        client = new JESTClient(config);
+        client.setLogger(logger);
+        client.init();
+        rawClient = (JestClient) client.getRawClient();
 	}
 
 	/**
@@ -397,7 +224,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
 	        	BulkResult result;
 	        	
 	        	try {
-		        	result = client.execute(bulk);
+		        	result = rawClient.execute(bulk);
 	        	} catch (NoHttpResponseException e) {
 	        		logger.error(e);
 	        		return;
@@ -436,10 +263,8 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
     public synchronized void shutdown() throws Exception {
         OperatorContext context = getOperatorContext();
         Logger.getLogger(this.getClass()).trace("Operator " + context.getName() + " shutting down in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId() );
-
         // Close connection to Elasticsearch server.
         client.close();
-        
         super.shutdown();
     }
     
@@ -536,7 +361,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
                 .addType(typeToInsert)
                 .build();
         
-        SearchResult searchResult = client.execute(search);
+        SearchResult searchResult = rawClient.execute(search);
         
         if (searchResult.isSucceeded()) {
 	        ExtendedStatsAggregation sizeMetrics = searchResult.getAggregations().getExtendedStatsAggregation(SIZE_METRICS_PROPERTY);
@@ -571,9 +396,9 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
     	while (reconnectionAttempts < config.getReconnectionPolicyCount()) {
 	    	try {
 				// Create index if it doesn't exist.
-	    		boolean indexExists = client.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
+	    		boolean indexExists = rawClient.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
 				if (!indexExists) {
-					JestResult result = client.execute(new CreateIndex.Builder(indexToInsert).build());
+					JestResult result = rawClient.execute(new CreateIndex.Builder(indexToInsert).build());
 					
 					if (!result.isSucceeded()) {
 						isConnected.setValue(0);
@@ -584,7 +409,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
 				// Enable _size mapping.
 				if (sizeMetricsEnabled) {
 					SizeMapping sizeMapping = new SizeMapping.Builder(indexToInsert, typeToInsert, true).build();
-					JestResult result = client.execute(sizeMapping);
+					JestResult result = rawClient.execute(sizeMapping);
 					
 					if (result.isSucceeded()) {
 						mapperSizeInstalled = true;
@@ -615,6 +440,8 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
     	logger.error("Reconnection policy count, " + config.getReconnectionPolicyCount() + ", reached. Operator still not connected to server.");
     	return false;
     }
+ 
+    // metrics ----------------------------------------------------------------------------------------------------------------
     
     /**
      * isConnected metric describes current connection status to Elasticsearch server.
@@ -696,4 +523,114 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator {
     	this.sumInsertSizeBytes = sumInsertSizeBytes;
     }
     
+    // operator parameters setters ------------------------------------------------------------------------------------------------------
+    
+	@Parameter(name="indexName", optional=true,
+		description="Specifies the name for the index."
+	)
+	public void setIndexName(String indexName) {
+		this.indexName = indexName;
+	}
+	
+	@Parameter(name="indexNameAttribute", optional=true,
+		description="Specifies the attribute providing the index names."
+	)
+	public void setIndexNameAttribute(TupleAttribute<Tuple, String> indexNameAttribute) {
+		this.indexNameAttribute = indexNameAttribute;
+	}
+	
+	@Parameter(name="typeName", optional=true,
+		description="Specifies the name for the type."
+	)
+	@Deprecated
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
+	}
+	
+	@Parameter(name="typeNameAttribute", optional=true,
+		description="Specifies the attribute providing the type names."
+	)
+	@Deprecated
+	public void setTypeNameAttribute(TupleAttribute<Tuple, String> typeNameAttribute) {
+		this.typeNameAttribute = typeNameAttribute;
+	}
+	
+	@Parameter(name="idName", optional=true,
+		description="Specifies the name for the id. If not specified, id is auto-generated."
+	)
+	public void setIdName(String idName) {
+		this.idName = idName;
+	}
+	
+	@Parameter(name="idNameAttribute", optional=true,
+		description="Specifies the attribute providing the ID names."
+	)
+	public void setIdNameAttribute(TupleAttribute<Tuple, String> idNameAttribute) {
+		this.idNameAttribute = idNameAttribute;
+	}
+	
+	@Parameter(name="storeTimestamps", optional=true,
+		description="Enables storing timestamps."
+	)
+	public void setStoreTimestamps(boolean storeTimestamps) {
+		this.storeTimestamps = storeTimestamps;
+	}
+	
+	@Parameter(name="timestampName", optional=true,
+		description="Specifies the name for the timestamp attribute."
+	)
+	public void setTimestampName(String timestampName) {
+		this.timestampName = timestampName;
+	}
+	
+	@Parameter(name="timestampValueAttribute", optional=true,
+		description="Specifies the attribute providing the timestamp values."
+	)
+	public void setTimestampValueAttribute(TupleAttribute<Tuple, Long> timestampValueAttribute) throws IOException {
+		this.timestampValueAttribute = timestampValueAttribute;
+	}
+	
+	@Parameter(name="bulkSize", optional=true,
+		description="Specifies the size of the bulk to submit to Elasticsearch."
+	)
+	public void setBulkSize(int bulkSize) {
+		this.bulkSize = bulkSize;
+	}
+	
+	@Parameter(name="sizeMetricsEnabled", optional=true,
+		description="Specifies whether to store and aggregate size metrics."
+	)
+	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
+		this.sizeMetricsEnabled = sizeMetricsEnabled;
+	}
+   
+    
+	// operator and port documentation -------------------------------------------------------------------------------------------------------
+
+	static final String operatorDescription = 
+			"The ElasticsearchIndex operator receives incoming tuples and outputs "
+			+ "the attribute's name-value pairs to an Elasticsearch database.\\n"
+			+ "\\n"
+			+ "The ElasticsearchIndex requires a hostname and hostport of an "
+			+ "Elasticsearch server to connect to.\\n"
+			+ "\\n"
+			+ "By default, the hostname is 'localhost', and the hostport "
+			+ "is 9200. This configuration can be changed in the parameters.\\n"
+			+ "\\n"
+			+ "An index and type must also be specified. The id is optional and if"
+			+ "not specified, it is auto-generated.\\n"
+			+ "\\n"
+			+ "A timestampName can optionally be specified for time-based queries "
+			+ "to create time-series charts that display how a tuple's attribute value "
+			+ "changes over time.\\n"
+			+ "\\n"
+			+ "Once the data is outputted to Elasticsearch, the user can query the "
+			+ "database and create custom graphs to display this data with graphing "
+			+ "tools such as Grafana and Kibana.\\n"
+			+ "\\n"
+			;
+	
+	static final String iport0Description = "Port that ingests tuples"
+			;
+ 
 }
