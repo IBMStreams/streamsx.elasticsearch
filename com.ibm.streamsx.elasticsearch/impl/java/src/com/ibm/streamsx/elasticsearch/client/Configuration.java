@@ -36,7 +36,9 @@ public class Configuration
 	private String sslTrustStorePassword = null;
 	private String sslKeyStore = null;
 	private String sslKeyStorePassword = null;
-	private boolean sslVerifyHostname = false;
+	private boolean sslTrustAllCertificates = false;
+	private boolean sslVerifyHostname = true;
+	private boolean sslDebug = false;
 	
 	public static Configuration getDefaultConfiguration() {
 		return new Configuration();
@@ -58,6 +60,7 @@ public class Configuration
 			throw new RuntimeException("Invalid Client configuration: empty nodeList");
 		}
 		String prefix = sslEnabled ? "https://" : "http://";
+		
 		for (String s : nodeList) {
 			result.add(prefix + s);
 		}
@@ -160,14 +163,31 @@ public class Configuration
 		this.sslVerifyHostname = sslVerifyHostname;
 	}
 
+	public boolean isSslDebug() {
+		return sslDebug;
+	}
+
+	public void setSslDebug(boolean sslDebug) {
+		this.sslDebug = sslDebug;
+	}
+
+	public boolean isSslTrustAllCertificates() {
+		return sslTrustAllCertificates;
+	}
+
+	public void setSslTrustAllCertificates(boolean sslTrustAllCertificates) {
+		this.sslTrustAllCertificates = sslTrustAllCertificates;
+	}
+
 	@Override
 	public String toString() {
-		return "Configuration [reconnectionPolicyCount=" + reconnectionPolicyCount 
-				+ ", nodeList=" + nodeList + ", userName=" + userName + ", password=" + password
-				+ ", nodeDiscoveryEnabled=" + nodeDiscoveryEnabled + ", nodeDiscoveryInterval=" + nodeDiscoveryInterval
-				+ ", nodeDiscoveryFilter=" + nodeDiscoveryFilter + ", sslEnabled=" + sslEnabled + ", sslTrustStore="
-				+ sslTrustStore + ", sslTrustStorePassword=" + sslTrustStorePassword + ", sslKeyStore=" + sslKeyStore
-				+ ", sslKeyStorePassword=" + sslKeyStorePassword + ", sslVerifyHostname=" + sslVerifyHostname + "]";
+		return "Configuration [reconnectionPolicyCount=" + reconnectionPolicyCount + ", nodeList=" + nodeList
+				+ ", userName=" + userName + ", password=" + password + ", nodeDiscoveryEnabled=" + nodeDiscoveryEnabled
+				+ ", nodeDiscoveryInterval=" + nodeDiscoveryInterval + ", nodeDiscoveryFilter=" + nodeDiscoveryFilter
+				+ ", sslEnabled=" + sslEnabled + ", sslTrustStore=" + sslTrustStore + ", sslTrustStorePassword="
+				+ sslTrustStorePassword + ", sslKeyStore=" + sslKeyStore + ", sslKeyStorePassword="
+				+ sslKeyStorePassword + ", sslTrustAllCertificates=" + sslTrustAllCertificates + ", sslVerifyHostname="
+				+ sslVerifyHostname + ", sslDebug=" + sslDebug + ", getNodeList()=" + getNodeList() + "]";
 	}
 
 }

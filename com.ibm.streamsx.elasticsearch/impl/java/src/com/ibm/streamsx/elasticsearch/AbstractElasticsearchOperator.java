@@ -47,7 +47,19 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	
 	// The name of the applicaton config object
 	private String appConfigName = null;
- 
+
+	// is ssl enabled
+	private boolean sslEnabled = false;
+	
+	// shall we enable SSL debug output ?
+	private boolean sslDebug = false;
+
+	// trust all certificate, use for debugging only
+	private boolean sslTrustAllCertificates = false;
+	
+	// do not verify certificate hostname, use for debugging only
+	private boolean sslVerifyHostname = true;
+
 	// internal members ------------------------------------------------------------------------------
 	
 	// Logger for tracing.
@@ -119,6 +131,30 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 			cfg.setReconnectionPolicyCount(Integer.parseInt(appConfig.get("reconnectionPolicyCount")));
 		} else {
 			cfg.setReconnectionPolicyCount(reconnectionPolicyCount);
+		}
+
+		if (null != appConfig.get("sslEnabled")) {
+			cfg.setSslEnabled(Boolean.parseBoolean(appConfig.get("sslEnabled")));
+		} else {
+			cfg.setSslEnabled(sslEnabled);
+		}
+
+		if (null != appConfig.get("sslDebug")) {
+			cfg.setSslDebug(Boolean.parseBoolean(appConfig.get("sslDebug")));
+		} else {
+			cfg.setSslDebug(sslDebug);
+		}
+
+		if (null != appConfig.get("sslTrustAllCertificates")) {
+			cfg.setSslTrustAllCertificates(Boolean.parseBoolean(appConfig.get("sslTrustAllCertificates")));
+		} else {
+			cfg.setSslTrustAllCertificates(sslTrustAllCertificates);
+		}
+
+		if (null != appConfig.get("sslVerifyHostname")) {
+			cfg.setSslVerifyHostname(Boolean.parseBoolean(appConfig.get("sslVerifyHostname")));
+		} else {
+			cfg.setSslVerifyHostname(sslVerifyHostname);
 		}
 
 		return cfg;
@@ -194,9 +230,44 @@ public class AbstractElasticsearchOperator extends AbstractOperator
     public void setPassword(String password) {
     	this.password = password;
     }
+    
+    @Parameter(name="sslEnabled", optional=true,
+    	description="Indicate if SSL/TLS shall be used to connect to the nodes. The default is 'false'. "
+    	+ "This parameter can be overwritten by the application configuration."	
+    )
+    public void setSslEnabled(boolean sslEnabled) {
+		this.sslEnabled = sslEnabled;
+	}
+    
+    @Parameter(name="sslDebug", optional=true,
+       	description="If SSL/TLS protocol debugging is enabled, all protocol data and information is logged to the console. "
+       	+ "This will help with debugging TLS connection problems. The default is 'false'. "
+    	+ "This parameter can be overwritten by the application configuration."	
+    )
+	public void setSslDebug(boolean sslDebug) {
+		this.sslDebug = sslDebug;
+	}
+
+    @Parameter(name="sslTrustAllCertificates", optional=true,
+       	description="If set to true, the SSL/TLS layer will not verify the server certificate chain. "
+       	+ "WARNING: this is unsecure and should only be used for debugging purposes. The default is 'false'. "
+    	+ "This parameter can be overwritten by the application configuration."	
+    )
+	public void setSslTrustAllCertificates(boolean sslTrustAllCertificates) {
+		this.sslTrustAllCertificates = sslTrustAllCertificates;
+	}
+
+    @Parameter(name="sslVerifyHostname", optional=true,
+       	description="If set to false, the SSL/TLS layer will not verify the hostname in the certificate against the actual name of the server host. "
+       	+ "WARNING: this is unsecure and should only be used for debugging purposes. The default is 'true'. "
+    	+ "This parameter can be overwritten by the application configuration."	
+    )
+	public void setSslVerifyHostname(boolean sslVerifyHostname) {
+		this.sslVerifyHostname = sslVerifyHostname;
+	}
 
     // other common parameters -----------------------------------------------------------------------
-    
+	
 	@Parameter(
 		name="appConfigName", optional = true,
 		description="Specifies the name of the application configuration that contains Cloudant connection related configuration parameters. The keys in the application configuration have the same name as the operator parameters."
@@ -240,6 +311,22 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 
 	public String getAppConfigName() {
 		return appConfigName;
+	}
+	
+	public boolean isSslEnabled() {
+		return sslEnabled;
+	}
+
+	public boolean isSslDebug() {
+		return sslDebug;
+	}
+
+	public boolean isSslTrustAllCertificates() {
+		return sslTrustAllCertificates;
+	}
+
+	public boolean isSslVerifyHostname() {
+		return sslVerifyHostname;
 	}
 
 }

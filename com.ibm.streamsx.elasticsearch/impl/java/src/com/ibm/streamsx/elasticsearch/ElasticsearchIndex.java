@@ -8,11 +8,14 @@
 package com.ibm.streamsx.elasticsearch;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
 
+import org.apache.http.HttpHeaders;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.log4j.Logger;
@@ -118,6 +121,10 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	 */
 	private boolean mapperSizeInstalled = false;
 	
+	// add basic authentication 
+	private boolean useBasicAuth = false;
+	private String authHeader = null;
+	
 	/**
      * Initialize this operator and create Elasticsearch client to send get requests to.
      * @param context OperatorContext for this operator.
@@ -140,6 +147,14 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
         client.setLogger(logger);
         client.init();
         rawClient = (JestClient) client.getRawClient();
+        
+        // create basic auth header if needed
+        if (config.getUserName() != null) {
+        	String credentials = config.getUserName() + ":" + config.getPassword();
+        	byte[] encodedCredentials = Base64.getEncoder().encode(credentials.getBytes(StandardCharsets.ISO_8859_1));
+        	authHeader = "Basic " + new String(encodedCredentials);
+        	useBasicAuth = true;
+        }
 	}
 
 	/**
@@ -215,11 +230,12 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
         	} else {
         		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).build());
         	}
-        	
+
         	currentBulkSize++;
     	
         	// If bulk size met, output jsonFields to Elasticsearch.
         	if(currentBulkSize >= bulkSize) {
+        		bulkBuilder.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
 	        	Bulk bulk = bulkBuilder.build();
 	        	BulkResult result;
 	        	
@@ -396,10 +412,27 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	while (reconnectionAttempts < config.getReconnectionPolicyCount()) {
 	    	try {
 				// Create index if it doesn't exist.
-	    		boolean indexExists = rawClient.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
+	    		
+	    		IndicesExists indicesExist = null;
+	    		if (useBasicAuth) {
+	    			indicesExist = new IndicesExists.Builder(indexToInsert).setHeader(HttpHeaders.AUTHORIZATION, authHeader).build();
+	    		} else {
+	    			indicesExist = new IndicesExists.Builder(indexToInsert).build();
+	    		}
+	    		
+	    		//boolean indexExists = rawClient.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
+	    		boolean indexExists = rawClient.execute(indicesExist).isSucceeded();
 				if (!indexExists) {
-					JestResult result = rawClient.execute(new CreateIndex.Builder(indexToInsert).build());
 					
+					CreateIndex createIndex = null;
+		    		if (useBasicAuth) {
+		    			createIndex = new CreateIndex.Builder(indexToInsert).setHeader(HttpHeaders.AUTHORIZATION, authHeader).build();
+		    		} else {
+		    			createIndex = new CreateIndex.Builder(indexToInsert).build();
+		    		}
+					
+					//JestResult result = rawClient.execute(new CreateIndex.Builder(indexToInsert).build());
+		    		JestResult result = rawClient.execute(createIndex);
 					if (!result.isSucceeded()) {
 						isConnected.setValue(0);
 						return false;
