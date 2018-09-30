@@ -7,6 +7,8 @@
 
 package com.ibm.streamsx.elasticsearch;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,6 +61,12 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	
 	// do not verify certificate hostname, use for debugging only
 	private boolean sslVerifyHostname = true;
+	
+	// the name of the cfile containing the trusted certificates
+	private String sslTrustStore = null;
+	
+	// the password for the truststore file
+	private String sslTrustStorePassword = null;
 
 	// internal members ------------------------------------------------------------------------------
 	
@@ -68,11 +76,15 @@ public class AbstractElasticsearchOperator extends AbstractOperator
     // data from application config object
     Map<String, String> appConfig = null;
     
+    // the operator context
+    private OperatorContext opContext = null;
+    
 	// operator methods ------------------------------------------------------------------------------
 
 	@Override
 	public synchronized void initialize(OperatorContext context) throws Exception {
 	        super.initialize(context);
+	        opContext = context;
 	        logger.trace("initialize AbstractElasticsearchOperator");
 	        loadAppConfig(context);
 	}
@@ -155,6 +167,28 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 			cfg.setSslVerifyHostname(Boolean.parseBoolean(appConfig.get("sslVerifyHostname")));
 		} else {
 			cfg.setSslVerifyHostname(sslVerifyHostname);
+		}
+
+		String trustFile = null;
+		if (null != appConfig.get("sslTrustStore")) {
+			trustFile = appConfig.get("sslTrustStore");
+		} else {
+			trustFile = sslTrustStore;
+		}
+		if (null != trustFile) {
+			// make path absolute
+			File t = new File(trustFile);
+			if (!t.isAbsolute()) {
+				File appDir = opContext.getPE().getApplicationDirectory();
+				trustFile = appDir.getPath() + "/etc/" + trustFile;
+			}
+		}
+		cfg.setSslTrustStore(trustFile);
+		
+		if (null != appConfig.get("sslTrustStorePassword")) {
+			cfg.setSslTrustStorePassword(appConfig.get("sslTrustStorePassword"));
+		} else {
+			cfg.setSslTrustStorePassword(sslTrustStorePassword);
 		}
 
 		return cfg;
@@ -266,6 +300,24 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 		this.sslVerifyHostname = sslVerifyHostname;
 	}
 
+    @Parameter(name="sslTrustStore", optional=true,
+    	description="This is the name of a file containing trusted certificates. The format is the common Java truststore format. "
+        + "Use this parametere, if the server certificate is signed by a CA that is not trusted per default with your current Java version. "
+        + "For example use it with self-signed certificates. This parameter can be overwritten by the application configuration."	
+    )
+    public void setSslTrustStore(String sslTrustStore) {
+		this.sslTrustStore = sslTrustStore;
+	}
+
+    @Parameter(name="sslTrustStorePassword", optional=true,
+    	description="If set to false, the SSL/TLS layer will not verify the hostname in the certificate against the actual name of the server host. "
+        + "WARNING: this is unsecure and should only be used for debugging purposes. The default is 'true'. "
+        + "This parameter can be overwritten by the application configuration."	
+    )
+	public void setSslTrustStorePassword(String sslTrustStorePassword) {
+		this.sslTrustStorePassword = sslTrustStorePassword;
+	}
+
     // other common parameters -----------------------------------------------------------------------
 	
 	@Parameter(
@@ -277,6 +329,8 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	public void setAppConfigName(String appConfigName) {
 		this.appConfigName = appConfigName;
 	}	
+	
+	// checkers --------------------------------------------------------------------------------------
 	
 	@ContextCheck(compile = false, runtime = true)
     public static void runtimeChecker(OperatorContextChecker checker) {
@@ -327,6 +381,14 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 
 	public boolean isSslVerifyHostname() {
 		return sslVerifyHostname;
+	}
+
+	public String getSslTrustStore() {
+		return sslTrustStore;
+	}
+
+	public String getSslTrustStorePassword() {
+		return sslTrustStorePassword;
 	}
 
 }

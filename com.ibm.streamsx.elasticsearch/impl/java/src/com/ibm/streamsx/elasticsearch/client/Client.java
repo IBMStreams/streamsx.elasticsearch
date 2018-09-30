@@ -1,7 +1,6 @@
 package com.ibm.streamsx.elasticsearch.client;
 
 import org.apache.log4j.Logger;
-import com.ibm.streamsx.elasticsearch.client.Configuration;
 
 /**
  * This is the interface between the Streams operators and the Elasticsearch 
@@ -29,8 +28,9 @@ public interface Client
 	
 	/**
 	 * Initialize client. The method shall respect parameters from the configuration passed in.
+	 * @throws Exception 
 	 */
-	boolean init();
+	boolean init() throws Exception;
 	
 	/**
 	 * Close client, clean up any resources left over

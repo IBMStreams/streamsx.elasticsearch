@@ -1,6 +1,8 @@
 package com.ibm.streamsx.elasticsearch.client;
 
+import java.io.File;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -57,12 +59,13 @@ public class JESTClient implements Client {
 	}
 
 	@Override
-	public boolean init() {
+	public boolean init() throws Exception {
 
 	    JestClientFactory factory = new JestClientFactory();
 	    client = null;
 	       
 		// use ssl 
+	    // TODO add error checking and logging here 
 		if (cfg.isSslEnabled()) {
 
 			// in case we are running on an IBM Java, where TLSv1.2 is not enabled per default, set this property
@@ -77,7 +80,7 @@ public class JESTClient implements Client {
 			SSLContext sslContext = null;
 			SSLConnectionSocketFactory sslSocketFactory = null;
 			
-			// trust all certificates , or use defaults
+			// trust all certificates , use use supplied truststore, or use java defaults
 			if (cfg.isSslTrustAllCertificates()) {
 				try {
 					sslContext = new SSLContextBuilder().loadTrustMaterial(new TrustStrategy() {
@@ -90,6 +93,29 @@ public class JESTClient implements Client {
 				} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					throw e;
+				}
+			} else if (cfg.getSslTrustStore() != null) {
+				File trustFile = new File(cfg.getSslTrustStore());
+				if (cfg.getSslTrustStorePassword() != null) {
+					try {
+						sslContext = new SSLContextBuilder().loadTrustMaterial(trustFile,cfg.getSslTrustStorePassword().toCharArray()).build();
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException
+							| CertificateException | IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						throw e;
+					}
+				} else {
+					try {
+						sslContext = new SSLContextBuilder().loadTrustMaterial(trustFile).build();
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException
+							| CertificateException | IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						throw e;
+					}
+					
 				}
 			} else {
 				try {
@@ -97,6 +123,7 @@ public class JESTClient implements Client {
 				} catch (NoSuchAlgorithmException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					throw e;
 				}
 			}
 			
