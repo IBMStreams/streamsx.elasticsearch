@@ -1,0 +1,47 @@
+package com.ibm.streamsx.elasticsearch.client;
+
+import org.apache.log4j.Logger;
+
+/**
+ * This is the interface between the Streams operators and the Elasticsearch 
+ * client implementation. All code in the client namespace is supposed
+ * to not have any dependencies or knowledge about Streams
+ */
+public interface Client
+{
+	/**
+	 * The client shall log valuable information for debugging to this logger
+	 */
+	void setLogger(Logger logger);
+
+	/**
+	 * Store the configuration in the client 
+	 * @param config client configuration
+	 */
+	void setConfiguration(Configuration config);
+	
+	/**
+	 * check if the current configuration information is sufficient to perform operations against the database
+	 * @return true if the configuration is ok, false otherwise
+	 */
+	boolean validateConfiguration();
+	
+	/**
+	 * Initialize client. The method shall respect parameters from the configuration passed in.
+	 * @throws Exception 
+	 */
+	boolean init() throws Exception;
+	
+	/**
+	 * Close client, clean up any resources left over
+	 */
+	void close();
+	
+	/**
+	 * create the client and return a handle
+	 * @return client object
+	 * TODO : remove once all client methods are encapsulated 
+	 */
+	Object getRawClient();
+	
+}
