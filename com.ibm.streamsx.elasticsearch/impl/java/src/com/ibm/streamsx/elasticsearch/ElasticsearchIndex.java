@@ -38,7 +38,6 @@ import com.ibm.streams.operator.model.PrimitiveOperator;
 import com.ibm.streamsx.elasticsearch.client.Client;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.client.JESTClient;
-import com.ibm.streamsx.elasticsearch.internal.SizeMapping;
 
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestResult;
@@ -47,9 +46,6 @@ import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.BulkResult;
 import io.searchbox.core.BulkResult.BulkResultItem;
 import io.searchbox.core.Index;
-import io.searchbox.core.Search;
-import io.searchbox.core.SearchResult;
-import io.searchbox.core.search.aggregation.ExtendedStatsAggregation;
 import io.searchbox.indices.CreateIndex;
 import io.searchbox.indices.IndicesExists;
 
@@ -67,7 +63,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	// operator parameter members --------------------------------------------------------------------------- 
 	
 	private int bulkSize = 1;
-	private boolean sizeMetricsEnabled = false;
 	
 	private String indexName;
 	private TupleAttribute<Tuple, String> indexNameAttribute;
@@ -90,11 +85,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	private static Logger logger = Logger.getLogger(ElasticsearchIndex.class.getName());
 	
 	/**
-	 * Property names for size metrics in Elasticsearch.
-	 */
-	private static String SIZE_METRICS_PROPERTY = "_size_metrics";
-
-	/**
 	 * Elasticsearch Jest API.
 	 */
 	private Client client;
@@ -110,16 +100,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	private Metric totalFailedRequests;
 	private Metric numInserts;
 	private Metric reconnectionCount;
-	
-	private Metric avgInsertSizeBytes;
-	private Metric maxInsertSizeBytes;
-	private Metric minInsertSizeBytes;
-	private Metric sumInsertSizeBytes;
-	
-	/**
-	 * Mapper size plugin is installed.
-	 */
-	private boolean mapperSizeInstalled = false;
 	
 	// add basic authentication 
 	private boolean useBasicAuth = false;
@@ -235,7 +215,9 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	
         	// If bulk size met, output jsonFields to Elasticsearch.
         	if(currentBulkSize >= bulkSize) {
-        		bulkBuilder.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+        		if (useBasicAuth) {
+        			bulkBuilder.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+        		}
 	        	Bulk bulk = bulkBuilder.build();
 	        	BulkResult result;
 	        	
@@ -263,10 +245,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     			// Clear bulkBuilder. Gets recreated in connectedToElasticsearch().
     			bulkBuilder = null;
     			
-    			// Get size metrics for current type.
-    			if (sizeMetricsEnabled && mapperSizeInstalled) {
-	    			getAndSetSizeMetrics(indexToInsert, typeToInsert, idToInsert);
-    			}
     		}
     	}
     }
@@ -352,54 +330,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     }
     
     /**
-     * Get and set size metrics.
-     * @param indexToInsert
-     * @param typeToInsert
-     * @param idToInsert
-     * @throws IOException 
-     */
-    private void getAndSetSizeMetrics(String indexToInsert, String typeToInsert, String idToInsert) throws IOException {
-    	String query = "{\n" +
-                "    \"query\" : {\n" +
-                "        \"match_all\" : {}\n" +
-                "    },\n" +
-                "    \"aggs\" : {\n" +
-                "        \"size_metrics\" : {\n" +
-                "            \"extended_stats\" : {\n" +
-                "                \"field\" : \"_size\"\n" +
-                "            }\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
-		
-        Search search = new Search.Builder(query)
-                .addIndex(indexToInsert)
-                .addType(typeToInsert)
-                .build();
-        
-        SearchResult searchResult = rawClient.execute(search);
-        
-        if (searchResult.isSucceeded()) {
-	        ExtendedStatsAggregation sizeMetrics = searchResult.getAggregations().getExtendedStatsAggregation(SIZE_METRICS_PROPERTY);
-			
-	        if (sizeMetrics != null) {
-	        	if (sizeMetrics.getAvg() != null) {
-	    			avgInsertSizeBytes.setValue(sizeMetrics.getAvg().longValue());
-	        	}
-	        	if (sizeMetrics.getMax() != null) {
-	        		maxInsertSizeBytes.setValue(sizeMetrics.getMax().longValue());
-	        	}
-	        	if (sizeMetrics.getMin() != null) {
-	        		minInsertSizeBytes.setValue(sizeMetrics.getMin().longValue());
-	        	}
-	        	if (sizeMetrics.getSum() != null) {
-	        		sumInsertSizeBytes.setValue(sizeMetrics.getSum().longValue());
-	        	}
-	        }
-        }
-    }
-    
-    /**
      * Check if operator is currently connected to Elasticsearch server. If not, try connecting.
      * @param client
      * @throws IOException 
@@ -436,18 +366,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 					if (!result.isSucceeded()) {
 						isConnected.setValue(0);
 						return false;
-					}
-				}
-
-				// Enable _size mapping.
-				if (sizeMetricsEnabled) {
-					SizeMapping sizeMapping = new SizeMapping.Builder(indexToInsert, typeToInsert, true).build();
-					JestResult result = rawClient.execute(sizeMapping);
-					
-					if (result.isSucceeded()) {
-						mapperSizeInstalled = true;
-					} else {
-						logger.error("Mapper size plugin was not detected. Please try restarting the Elasticsearch server after install.");
 					}
 				}
 
@@ -516,45 +434,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	this.reconnectionCount = reconnectionCount;
     }
     
-    /**
-     * The average size of inserted records, in bytes, within the current type.
-     * @param avgInsertSizeBytes
-     */
-    @CustomMetric(name = "avgInsertSizeBytes", kind = Metric.Kind.GAUGE,
-    		description = "The average size of inserted records, in bytes (aggregated over all documents within the current type).")
-    public void setAvgInsertSizeBytes(Metric avgInsertSizeBytes) {
-    	this.avgInsertSizeBytes = avgInsertSizeBytes;
-    }
-    
-    /**
-     * The maximum size of any inserted records, in bytes, within the current type.
-     * @param maxInsertSizeBytes
-     */
-    @CustomMetric(name = "maxInsertSizeBytes", kind = Metric.Kind.GAUGE,
-    		description = "The maximum size of any inserted records, in bytes (aggregated over all documents within the current type).")
-    public void setMaxInsertSizeBytes(Metric maxInsertSizeBytes) {
-    	this.maxInsertSizeBytes = maxInsertSizeBytes;
-    }
-
-    /**
-     * The minimum size of any inserted records, in bytes, within the current type.
-     * @param minInsertSizeBytes
-     */
-    @CustomMetric(name = "minInsertSizeBytes", kind = Metric.Kind.GAUGE,
-    		description = "The minimum size of any inserted records, in bytes (aggregated over all documents within the current type).")
-    public void setMinInsertSizeBytes(Metric minInsertSizeBytes) {
-    	this.minInsertSizeBytes = minInsertSizeBytes;
-    }
-    
-    /**
-     * The total size of all inserted records, in bytes, within the current type.
-     * @param sumInsertSizeBytes
-     */
-    @CustomMetric(name = "sumInsertSizeBytes", kind = Metric.Kind.GAUGE,
-    		description = "The total size of all inserted records, in bytes (aggregated over all documents within the current type).")
-    public void setSumInsertSizeBytes(Metric sumInsertSizeBytes) {
-    	this.sumInsertSizeBytes = sumInsertSizeBytes;
-    }
     
     // operator parameters setters ------------------------------------------------------------------------------------------------------
     
@@ -630,14 +509,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 		this.bulkSize = bulkSize;
 	}
 	
-	@Parameter(name="sizeMetricsEnabled", optional=true,
-		description="Specifies whether to store and aggregate size metrics."
-	)
-	public void setSizeMetricsEnabled(boolean sizeMetricsEnabled) {
-		this.sizeMetricsEnabled = sizeMetricsEnabled;
-	}
-   
-    
 	// operator and port documentation -------------------------------------------------------------------------------------------------------
 
 	static final String operatorDescription = 

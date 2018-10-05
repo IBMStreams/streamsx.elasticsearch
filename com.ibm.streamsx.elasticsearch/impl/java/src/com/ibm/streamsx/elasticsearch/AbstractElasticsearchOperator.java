@@ -8,7 +8,6 @@
 package com.ibm.streamsx.elasticsearch;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
