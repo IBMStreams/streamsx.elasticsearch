@@ -1,0 +1,29 @@
+/*
+*******************************************************************************
+* Copyright (C) 2010,2014, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+
+//namespace com.ibm.streamsx.inet.sample;
+
+use com.ibm.streamsx.inet::InetSource;
+use com.ibm.streamsx.testframe::FileSink1;
+
+/**
+ * Http GET
+ * 
+ */
+composite Main
+{
+  graph
+    stream<list<rstring> result> Result = InetSource() {
+      param URIList : ["http://httpbin.org/get"];
+        fetchInterval : 1.0;
+        punctPerFetch: true;
+        emitTuplePerURI : true;
+        iterations : 3u;
+    } 
+
+    () as Sink = FileSink1(Result) {}
+}
