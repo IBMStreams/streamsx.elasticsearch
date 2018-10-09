@@ -1,0 +1,63 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+
+//namespace com.ibm.streamsx.testapp ;
+
+
+
+use com.ibm.streamsx.elasticsearch::* ;
+//use com.ibm.streamsx.elasticsearch::ElasticsearchIndex ;
+
+use com.ibm.streamsx.testframe::FileSink1;
+
+/**
+ * 
+ * 
+ */
+composite Main
+{
+
+  type 
+  
+  	DataTuple = tuple <rstring id, rstring msg>  ;
+  
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Beacon()                      
+    {                                                                      
+      param                                                                
+        period : 2.0;                                                      
+        initDelay: 5.0;
+        iterations : 3u;
+        
+      output                                                               
+        Data:	id = (rstring)IterationCount(),
+        		msg = "This is my message #" + (rstring)IterationCount();                              
+    }
+    
+    
+    () as ElasticsearchDB = ElasticsearchIndex(Data)
+	{
+		param
+			nodeList : "localhost:9300" ;
+			indexName : "basic_test_index" ;
+			typeName : "basic_test_type" ;
+			storeTimestamps : false ;
+			//idNameAttribute : id ;
+	}
+
+
+    stream<DataTuple> DelayedData = Delay(Data)
+    {
+      param delay      : 5.0;
+            bufferSize : 250u;
+    }
+    
+
+    () as TestStopSink = FileSink1(Data) {}
+}
