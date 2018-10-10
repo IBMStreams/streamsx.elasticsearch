@@ -1,36 +1,53 @@
-# begin_generated_IBM_copyright_prolog                             
-#                                                                  
-# This is an automatically generated copyright prolog.             
-# After initializing,  DO NOT MODIFY OR MOVE                       
-# **************************************************************** 
-# THIS SAMPLE CODE IS PROVIDED ON AN "AS IS" BASIS. IBM MAKES NO   
-# REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, CONCERNING    
-# USE OF THE SAMPLE CODE, OR THE COMPLETENESS OR ACCURACY OF THE   
-# SAMPLE CODE. IBM DOES NOT WARRANT UNINTERRUPTED OR ERROR-FREE    
-# OPERATION OF THIS SAMPLE CODE. IBM IS NOT RESPONSIBLE FOR THE    
-# RESULTS OBTAINED FROM THE USE OF THE SAMPLE CODE OR ANY PORTION  
-# OF THIS SAMPLE CODE.                                             
-#                                                                  
-# LIMITATION OF LIABILITY. IN NO EVENT WILL IBM BE LIABLE TO ANY   
-# PARTY FOR ANY DIRECT, INDIRECT, SPECIAL OR OTHER CONSEQUENTIAL   
-# DAMAGES FOR ANY USE OF THIS SAMPLE CODE, THE USE OF CODE FROM    
-# THIS [ SAMPLE PACKAGE,] INCLUDING, WITHOUT LIMITATION, ANY LOST  
-# PROFITS, BUSINESS INTERRUPTION, LOSS OF PROGRAMS OR OTHER DATA   
-# ON YOUR INFORMATION HANDLING SYSTEM OR OTHERWISE.                
-#                                                                  
-# (C) Copyright IBM Corp.  2018  All Rights reserved.         
-#                                                                  
-# end_generated_IBM_copyright_prolog 
+# Copyright (C)2018, International Business Machines Corporation and  
+# others. All Rights Reserved.                        
 
-.PHONY: all clean distributed
+.PHONY: all clean
 
-SPLC = $(STREAMS_INSTALL)/bin/sc
-SPL_MAIN_COMPOSITE = com.ibm.streamsx.elasticsearch.sample.ECG::Main
+# determine pathes
+ifeq ($(STREAMS_STUDIO_BUILDING), 1)
+  # Building from Streams Studio, use env vars set by studio
+  SPLC = $(STREAMS_STUDIO_SC_PATH)
+  SPL_PATH = $(STREAMS_STUDIO_SPL_PATH)
+  OUTPUT_DIR = $(STREAMS_STUDIO_OUTPUT_DIRECTORY)
+else
+  # Building outside of Streams Studio...
+  ifeq ($(STREAMS_INSTALL),)
+    $(error error: environment variable STREAMS_INSTALL has to be set)
+  endif
+  # Set the ELASTICSEARCH_TOOLKIT_HOME variable if the toolkit or sample location changed
+  ifeq ($(ELASTICSEARCH_TOOLKIT_HOME),)
+    ifneq ($(realpath ../../com.ibm.streamsx.elasticsearch),)
+      ELASTICSEARCH_TOOLKIT_HOME = ../../com.ibm.streamsx.elasticsearch
+    endif
+    ifneq ($(realpath $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.elasticsearch),)
+      ELASTICSEARCH_TOOLKIT_HOME = $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.elasticsearch
+    endif
+  endif
+  SPLC = $(STREAMS_INSTALL)/bin/sc
+  SPL_PATH = $(ELASTICSEARCH_TOOLKIT_HOME)
+endif
 
-all:
-	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) -t $(STREAMSX_ES_TOOLKIT)
+# directories and compiler options
+DATA_DIR = ./data
+SPL_NAMESPACE = com.ibm.streamsx.elasticsearch.sample.ECG
+SPL_MAIN_COMPOSITE = $(SPL_NAMESPACE)::Main
+SPLC_FLAGS  = -a -t $(SPL_PATH) --data-directory=$(DATA_DIR)
+SPL_CMD_ARGS ?= 
+OUTPUT_DIR = output
 
-clean:
-	$(SPLC) $(SPLC_FLAGS) -C -M $(SPL_MAIN_COMPOSITE)
-#	rm -rf $(OUTPUT_DIR)
-#	rm -rf doc
+all: buildjava
+	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --output-directory $(OUTPUT_DIR) $(SPL_CMD_ARGS)
+
+clean: cleanjava
+	$(SPLC) $(SPLC_FLAGS) -C -M $(SPL_MAIN_COMPOSITE) --output-directory $(OUTPUT_DIR)
+	-rm -rf $(OUTPUT_DIR)
+	-rm -rf toolkit.xml
+	-rm -rf .toolkitList
+
+buildjava:
+	ant all
+
+cleanjava:
+	ant clean
+
+
