@@ -9,13 +9,13 @@
 locale                   : "en"
 title                    : &toolkit "streamsx.elasticsearch"
 title_separator          : "-"
-name                     : &name "Nelson Ong" # &name is a YAML anchor which can be *referenced later
-description              : &description "Toolkit site description."
+name                     : &name "Nelson Ong & IBMStreams" # &name is a YAML anchor which can be *referenced later
+description              : &description "The documentation for the IBM Streams Elasticsearch toolkit."
 url                      : https://ibmstreams.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : "/streamsx.elasticsearch" # the subpath of your site, e.g. "/blog"
 repository               : "IBMStreams/streamsx.elasticsearch" # GitHub username/repo-name
 github_base_url          : "https://github.com" # your github server, will differ when enterprise github
-github_editme_path       : https://github.com/IBMStreams/streamsx.json/blob/gh-pages
+github_editme_path       : https://github.com/IBMStreams/streamsx.elasticsearch/blob/gh-pages
 spldoc_path              : &default_cta_url "com.ibm.streamsx.elasticsearch/doc/spldoc/html"
 toolkit_excerpt          : &default_excerpt "The Elasticsearch toolkit allows you to dump Streams tuple data into an Elasticsearch database."
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
