@@ -67,6 +67,6 @@ _Note: If you don’t have a Streams application to test with, there are samples
 ## [](#header-6)Other Links
 
 *   [IBM Streams on Github](http://ibmstreams.github.io)
-*   [Introduction to Streams Quick Start Edition](http://ibmstreams.github.io/streamsx.documentation/docs/4.2/qse-intro/)
-*   [Streams Getting Started Guide](http://ibmstreams.github.io/streamsx.documentation/docs/4.2/qse-getting-started/)
+*   [Introduction to Streams Quick Start Edition](http://ibmstreams.github.io/streamsx.documentation/docs/4.3/qse-intro/)
+*   [Streams Getting Started Guide](http://ibmstreams.github.io/streamsx.documentation/docs/4.3/qse-getting-started/)
 *   [StreamsDev](https://developer.ibm.com/streamsdev/)
