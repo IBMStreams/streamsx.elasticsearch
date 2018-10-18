@@ -44,6 +44,7 @@ public class JESTClient implements Client {
 	private JestClient client = null;
 	private Builder bulkBuilder = null;
 	private int bulkSize = 0;
+	private final static String defaultType = "_doc";
 	
 	// http basic authentication 
 	private boolean useBasicAuth = false;
@@ -188,19 +189,19 @@ public class JESTClient implements Client {
 			bulkBuilder = new Bulk.Builder().defaultIndex(indexToInsert).defaultType(typeToInsert);
 		}
 
+		// set a default type , as types will be removed in ES7
+		// with ES6 only  one type per index is allowed. The default should be named _doc
+		String docType = defaultType;
 		if (null != typeToInsert) {
-			if (idToInsert != null) {
-				bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).type(typeToInsert).id(idToInsert).build());
-			} else {
-				bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).type(typeToInsert).build());
-			}
-		} else {
-			if (idToInsert != null) {
-				bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).id(idToInsert).build());
-			} else {
-				bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).build());
-			}
+			docType = typeToInsert;
 		}
+
+		if (idToInsert != null) {
+			bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).type(docType).id(idToInsert).build());
+		} else {
+			bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).type(docType).build());
+		}
+		
 		bulkSize++;
 	}
 
@@ -236,13 +237,20 @@ public class JESTClient implements Client {
 			logger.info("bulk send successfully, size = " + Integer.toString(bulkSize));
 		} else {
 			if (result != null) {
-				for (BulkResultItem item : result.getItems()) {
-					if (item.error != null) {
-						failedInserts++;
-						logger.error("bulk item indexing failed. " + item.error);
+
+				if (result.getErrorMessage() != null) {
+					logger.error("bulk send failed. bulk size = " + Integer.toString(bulkSize));
+					logger.error("Error: " + result.getErrorMessage());
+				} else {
+					for (BulkResultItem item : result.getItems()) {
+						if (item.error != null) {
+							failedInserts++;
+							logger.error("bulk item indexing failed. " + item.error);
+						}
 					}
+					logger.info("bulk send partially successful. Total items = " + Integer.toString(bulkSize) + ", failed = " + Integer.toString(failedInserts));
 				}
-				logger.info("bulk send partially successful. Total items = " + Integer.toString(bulkSize) + ", failed = " + Integer.toString(failedInserts));
+				
 			} else {
 				logger.error("bulk send failed. bulk size = " + Integer.toString(bulkSize));
 			}

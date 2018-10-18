@@ -17,9 +17,9 @@
   <property name="tmp" location="tmp" />
 	
 	
-  <target name="all" depends="toolkit,samples,spldoc"/>
+  <target name="all" depends="toolkit,spldoc"/>
 
-  <target name="clean" depends="cleansamples" description="clean up" >
+  <target name="clean" description="clean up" >
         <delete includeemptydirs="true">
           <fileset dir="${basedir}" includes="tmp/"/>
         </delete>

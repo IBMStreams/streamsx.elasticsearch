@@ -166,8 +166,8 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	String typeToInsert = getType(tuple);
     	String idToInsert = getId(tuple);
     	
-    	if (indexToInsert == null || typeToInsert == null) {
-    		throw new Exception("Index and type must be defined.");
+    	if (indexToInsert == null) {
+    		throw new Exception("Index must be defined.");
     	}
 
     	// Add document to bulk
@@ -329,7 +329,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	}
 	
 	@Parameter(name="typeName", optional=true,
-		description="Specifies the name for the type."
+		description="Specifies the name for the type. If no type is specified a default type of '_doc' is used."
 	)
 	public void setTypeName(String typeName) {
 		this.typeName = typeName;
