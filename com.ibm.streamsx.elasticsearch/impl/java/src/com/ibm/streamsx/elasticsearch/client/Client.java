@@ -33,15 +33,21 @@ public interface Client
 	boolean init() throws Exception;
 	
 	/**
+	 * Add new document to an existing bulk, if the bulk does not exist it must be created
+	 * @param idToInsert 
+	 * @param typeToInsert 
+	 * @param indexToInsert 
+	 */
+	void bulkIndexAddDocument(String document, String indexToInsert, String typeToInsert, String idToInsert);
+	
+	/**
+	 * send the bulk to the ES server
+	 */
+	void bulkIndexSend();
+	
+	/**
 	 * Close client, clean up any resources left over
 	 */
 	void close();
-	
-	/**
-	 * create the client and return a handle
-	 * @return client object
-	 * TODO : remove once all client methods are encapsulated 
-	 */
-	Object getRawClient();
 	
 }

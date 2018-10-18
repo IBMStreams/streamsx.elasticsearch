@@ -8,16 +8,11 @@
 package com.ibm.streamsx.elasticsearch;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
 
-import org.apache.http.HttpHeaders;
-import org.apache.http.NoHttpResponseException;
-import org.apache.http.conn.HttpHostConnectException;
 import org.apache.log4j.Logger;
 
 import com.ibm.json.java.JSONObject;
@@ -38,16 +33,6 @@ import com.ibm.streams.operator.model.PrimitiveOperator;
 import com.ibm.streamsx.elasticsearch.client.Client;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.client.JESTClient;
-
-import io.searchbox.client.JestClient;
-import io.searchbox.client.JestResult;
-import io.searchbox.core.Bulk;
-import io.searchbox.core.Bulk.Builder;
-import io.searchbox.core.BulkResult;
-import io.searchbox.core.BulkResult.BulkResultItem;
-import io.searchbox.core.Index;
-import io.searchbox.indices.CreateIndex;
-import io.searchbox.indices.IndicesExists;
 
 @PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription)
 @InputPorts({@InputPortSet(
@@ -85,11 +70,9 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	private static Logger logger = Logger.getLogger(ElasticsearchIndex.class.getName());
 	
 	/**
-	 * Elasticsearch Jest API.
+	 * Elasticsearch Client API.
 	 */
 	private Client client;
-	private JestClient rawClient;
-	private Builder bulkBuilder;
 	private int currentBulkSize = 0;
 	private Configuration config = null;
 	
@@ -100,10 +83,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	private Metric totalFailedRequests;
 	private Metric numInserts;
 	private Metric reconnectionCount;
-	
-	// add basic authentication 
-	private boolean useBasicAuth = false;
-	private String authHeader = null;
 	
 	/**
      * Initialize this operator and create Elasticsearch client to send get requests to.
@@ -126,15 +105,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
         client = new JESTClient(config);
         client.setLogger(logger);
         client.init();
-        rawClient = (JestClient) client.getRawClient();
-        
-        // create basic auth header if needed
-        if (config.getUserName() != null) {
-        	String credentials = config.getUserName() + ":" + config.getPassword();
-        	byte[] encodedCredentials = Base64.getEncoder().encode(credentials.getBytes(StandardCharsets.ISO_8859_1));
-        	authHeader = "Basic " + new String(encodedCredentials);
-        	useBasicAuth = true;
-        }
 	}
 
 	/**
@@ -199,54 +169,25 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	if (indexToInsert == null || typeToInsert == null) {
     		throw new Exception("Index and type must be defined.");
     	}
-    	
-    	if (connectedToElasticsearch(indexToInsert, typeToInsert)) {
-        	
-    		// Add jsonDocuments to bulkBuilder.
-        	String source = jsonDocuments.toString();
-        	
-        	if (idToInsert != null) {
-        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).id(idToInsert).build());
-        	} else {
-        		bulkBuilder.addAction(new Index.Builder(source).index(indexToInsert).type(typeToInsert).build());
-        	}
 
-        	currentBulkSize++;
+    	// Add document to bulk
+    	String source = jsonDocuments.toString();
+    	client.bulkIndexAddDocument(source,indexToInsert,typeToInsert,idToInsert);
+    	currentBulkSize++;
     	
-        	// If bulk size met, output jsonFields to Elasticsearch.
-        	if(currentBulkSize >= bulkSize) {
-        		if (useBasicAuth) {
-        			bulkBuilder.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
-        		}
-	        	Bulk bulk = bulkBuilder.build();
-	        	BulkResult result;
-	        	
-	        	try {
-		        	result = rawClient.execute(bulk);
-	        	} catch (NoHttpResponseException e) {
-	        		logger.error(e);
-	        		return;
-	        	}
-	        	
-    			if (result.isSucceeded()) {
-    				long currentNumInserts = numInserts.getValue();
-    				numInserts.setValue(currentNumInserts + bulkSize);
-    				currentBulkSize = 0;
-    			} else {
-    				for (BulkResultItem item : result.getItems()) {
-    					if (item.error != null) {
-    						numInserts.increment();
-    					} else {
-    						totalFailedRequests.increment();
-    					}
-    				}
-    			}
-    			
-    			// Clear bulkBuilder. Gets recreated in connectedToElasticsearch().
-    			bulkBuilder = null;
-    			
-    		}
+    	// send bulk if needed
+    	if (currentBulkSize == bulkSize) {
+    		client.bulkIndexSend();
+    		currentBulkSize = 0;
+
+    		// TODO : handle metrics here 
+    		// Metric isConnected;
+    		// Metric totalFailedRequests;
+    		// Metric numInserts;
+    		// Metric reconnectionCount;
+
     	}
+    	
     }
 
 	/**
@@ -257,7 +198,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     public synchronized void shutdown() throws Exception {
         OperatorContext context = getOperatorContext();
         Logger.getLogger(this.getClass()).trace("Operator " + context.getName() + " shutting down in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId() );
-        // Close connection to Elasticsearch server.
+        // shutdown client
         client.close();
         super.shutdown();
     }
@@ -328,69 +269,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	}
     	return null;
     }
-    
-    /**
-     * Check if operator is currently connected to Elasticsearch server. If not, try connecting.
-     * @param client
-     * @throws IOException 
-     */
-    private Boolean connectedToElasticsearch(String indexToInsert, String typeToInsert) throws IOException {
-    	
-    	// Keep trying to reconnect until reconnectionPolicyCount met.
-    	int reconnectionAttempts = 0;
-    	reconnectionCount.setValue(0);
-    	while (reconnectionAttempts < config.getReconnectionPolicyCount()) {
-	    	try {
-				// Create index if it doesn't exist.
-	    		
-	    		IndicesExists indicesExist = null;
-	    		if (useBasicAuth) {
-	    			indicesExist = new IndicesExists.Builder(indexToInsert).setHeader(HttpHeaders.AUTHORIZATION, authHeader).build();
-	    		} else {
-	    			indicesExist = new IndicesExists.Builder(indexToInsert).build();
-	    		}
-	    		
-	    		//boolean indexExists = rawClient.execute(new IndicesExists.Builder(indexToInsert).build()).isSucceeded();
-	    		boolean indexExists = rawClient.execute(indicesExist).isSucceeded();
-				if (!indexExists) {
-					
-					CreateIndex createIndex = null;
-		    		if (useBasicAuth) {
-		    			createIndex = new CreateIndex.Builder(indexToInsert).setHeader(HttpHeaders.AUTHORIZATION, authHeader).build();
-		    		} else {
-		    			createIndex = new CreateIndex.Builder(indexToInsert).build();
-		    		}
-					
-					//JestResult result = rawClient.execute(new CreateIndex.Builder(indexToInsert).build());
-		    		JestResult result = rawClient.execute(createIndex);
-					if (!result.isSucceeded()) {
-						isConnected.setValue(0);
-						return false;
-					}
-				}
-
-				// Reset bulkBuilder.
-				if (bulkBuilder == null) {
-					bulkBuilder = new Bulk.Builder()
-								  .defaultIndex(indexToInsert)
-								  .defaultType(typeToInsert);
-				}
-				
-				isConnected.setValue(1);
-				return true;
-				
-	        } catch (HttpHostConnectException e) {
-	        	logger.error(e);
-	        	
-	        	isConnected.setValue(0);
-	        	reconnectionAttempts++;
-	        	reconnectionCount.increment();
-	        }
-    	}
-    	
-    	logger.error("Reconnection policy count, " + config.getReconnectionPolicyCount() + ", reached. Operator still not connected to server.");
-    	return false;
-    }
  
     // metrics ----------------------------------------------------------------------------------------------------------------
     
@@ -434,7 +312,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	this.reconnectionCount = reconnectionCount;
     }
     
-    
     // operator parameters setters ------------------------------------------------------------------------------------------------------
     
 	@Parameter(name="indexName", optional=true,
@@ -454,7 +331,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	@Parameter(name="typeName", optional=true,
 		description="Specifies the name for the type."
 	)
-	@Deprecated
 	public void setTypeName(String typeName) {
 		this.typeName = typeName;
 	}
@@ -462,7 +338,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	@Parameter(name="typeNameAttribute", optional=true,
 		description="Specifies the attribute providing the type names."
 	)
-	@Deprecated
 	public void setTypeNameAttribute(TupleAttribute<Tuple, String> typeNameAttribute) {
 		this.typeNameAttribute = typeNameAttribute;
 	}

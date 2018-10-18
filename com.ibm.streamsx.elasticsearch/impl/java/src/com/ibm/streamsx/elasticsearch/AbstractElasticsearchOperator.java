@@ -61,7 +61,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	// do not verify certificate hostname, use for debugging only
 	private boolean sslVerifyHostname = true;
 	
-	// the name of the cfile containing the trusted certificates
+	// the name of the file containing the trusted certificates
 	private String sslTrustStore = null;
 	
 	// the password for the truststore file
