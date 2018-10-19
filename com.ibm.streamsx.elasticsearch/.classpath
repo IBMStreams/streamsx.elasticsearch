@@ -8,10 +8,8 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="opt/downloaded/commons-codec-1.9.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/commons-logging-1.2.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/gson-2.8.0.jar"/>
-	<classpathentry kind="lib" path="opt/downloaded/guava-21.0.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/httpasyncclient-4.1.3.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/httpclient-4.5.3.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/httpcore-4.4.6.jar"/>
@@ -19,5 +17,7 @@
 	<classpathentry kind="lib" path="opt/downloaded/jest-6.3.1.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/jest-common-6.3.1.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/slf4j-api-1.7.25.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/commons-codec-1.11.jar"/>
+	<classpathentry kind="lib" path="opt/downloaded/guava-26.0-jre.jar"/>
 	<classpathentry kind="output" path="impl/java/bin"/>
 </classpath>
