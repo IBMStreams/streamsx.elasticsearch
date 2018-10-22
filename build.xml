@@ -19,7 +19,7 @@
 	
   <target name="all" depends="toolkit,spldoc"/>
 
-  <target name="clean" description="clean up" >
+  <target name="clean" depends="cleansamples" description="clean up" >
         <delete includeemptydirs="true">
           <fileset dir="${basedir}" includes="tmp/"/>
         </delete>
@@ -59,17 +59,19 @@
   </target>
 
   <target name="cleansamples">
-    <subant genericantfile="${basedir}/build.xml">
-       <target name="cleantoolkit"/>
-       <target name="cleansample"/>
-       <dirset dir="samples" includes="*"/>
-    </subant>
+     <exec executable="make" failonerror="true" dir="${basedir}/samples">
+        <arg value="-f" />
+        <arg value="Makefile" />
+        <arg value="clean" />
+     </exec>
   </target>
 
   <target name="build-all-samples" depends="toolkit">
-    <subant target="buildsample" genericantfile="${basedir}/build.xml">
-       <dirset dir="samples" includes="*"/>
-    </subant>
+     <exec executable="make" failonerror="true" dir="${basedir}/samples">
+        <arg value="-f" />
+        <arg value="Makefile" />
+        <arg value="all" />
+     </exec>
   </target>
 
   <!-- Test targets -->
@@ -77,17 +79,6 @@
      <echo message="TODO: No tests have been created yet!"/>
      <!-- TODO: Reactivate after tests have been created -->
      <!--ant dir="${toolkit.test}" target="test"/-->
-  </target>
-
-  <!-- Targets called on samples -->
-  <target name="buildsample">
-     <echo message="Sample to build: ${basedir}"/>
-     <ant dir="${basedir}" target="all"/>
-  </target>
-
-  <target name="cleansample">
-     <echo message="Sample to clean: ${basedir}"/>
-     <ant dir="${basedir}" target="clean"/>
   </target>
 
   <target name="indextoolkit">
