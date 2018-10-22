@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
-    <info:name>com.ibm.streamsx.elasticsearch.sample.ECG</info:name>
-    <info:description></info:description>
+    <info:name>ElasticsearchECGSample</info:name>
+    <info:description>Sample shows the usage of the ElasticsearchIndex operator storing ECG data.</info:description>
     <info:version>1.0.0</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>

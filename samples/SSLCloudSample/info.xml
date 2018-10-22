@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
-    <info:name>com.ibm.streamsx.elasticsearch.sample.SSL</info:name>
-    <info:description></info:description>
+    <info:name>ElasticsearchSSLCloudSample</info:name>
+    <info:description>Demonstrates the usage of using the ElasticsearchIndex operator with SSL connection to the IBM cloud service.</info:description>
     <info:version>1.0.0</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
