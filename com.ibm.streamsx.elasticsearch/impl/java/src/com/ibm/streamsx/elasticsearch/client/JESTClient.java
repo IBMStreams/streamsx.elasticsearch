@@ -21,9 +21,12 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
 import org.apache.log4j.Logger;
 
+import io.searchbox.action.AbstractAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
+import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
+import io.searchbox.client.config.exception.CouldNotConnectException;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.Bulk.Builder;
 import io.searchbox.core.BulkResult;
@@ -45,6 +48,7 @@ public class JESTClient implements Client {
 	private Builder bulkBuilder = null;
 	private int bulkSize = 0;
 	private final static String defaultType = "_doc";
+	private int numberOfNodes = 1;
 	
 	// http basic authentication 
 	private boolean useBasicAuth = false;
@@ -77,6 +81,7 @@ public class JESTClient implements Client {
 
 	    JestClientFactory factory = new JestClientFactory();
 	    client = null;
+	    numberOfNodes = cfg.getNodeList().size();
 	       
 	    // create basic authentication header if needed
         if (cfg.getUserName() != null) {
@@ -165,6 +170,8 @@ public class JESTClient implements Client {
 		} else {
        	  	factory.setHttpClientConfig(new HttpClientConfig.Builder(cfg.getNodeList())
        	  			.multiThreaded(false)
+       	  			.readTimeout(5000)
+       	  			.connTimeout(5000)
         	  		.build());
 		}
         
@@ -177,7 +184,7 @@ public class JESTClient implements Client {
 		try {
 			client.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			logger.error("Exception during closing the JEST client, message: " + e.getMessage());
 			e.printStackTrace();
 		}
 	}
@@ -195,7 +202,7 @@ public class JESTClient implements Client {
 		if (null != typeToInsert) {
 			docType = typeToInsert;
 		}
-
+		
 		if (idToInsert != null) {
 			bulkBuilder.addAction(new Index.Builder(document).index(indexToInsert).type(docType).id(idToInsert).build());
 		} else {
@@ -205,6 +212,65 @@ public class JESTClient implements Client {
 		bulkSize++;
 	}
 
+	// Method to send any request to ES, it handles connection retries and exceptions from the jest/apache http clients
+	private <T extends AbstractAction<E>, E extends JestResult> E executeRequest(T request) {
+		
+		int attempts = 0;
+		int nodesFailed = 0;
+		int reconnects = 0;
+		boolean retry = true;
+		E response = null;
+		boolean gotResponse = false;
+		
+		while (retry) {
+			try {
+				response = client.execute(request);
+				gotResponse = true;
+			} catch (NoHttpResponseException e) {
+				logger.error("HTTP error. Cannot send request to server. Exception : " + e.getMessage());
+			} catch (CouldNotConnectException e) {
+				logger.error("Connect error. Cannot send request to server. Exception : " + e.getMessage());
+			} catch (IOException e) {
+				// TODO : read timeout can happen here , add parameter to specify readTimeout ?
+				logger.error("IO error. Cannot send request to server. Exception : " + e.getMessage());
+				e.printStackTrace();
+			}
+			attempts++;
+			
+			if (gotResponse) {
+				retry = false;
+			} else {
+				// if we have nodes left in the cluster, we try to immediately send the request to the next node
+				if (attempts < numberOfNodes) {
+					retry = true;
+					logger.error("Attempt: " + Integer.toString(attempts) + " failed, retrying without wait interval ...");
+				} else
+				// if all nodes failed, we try to reconnect with a wait interval 
+				{
+					reconnects++;
+					if (reconnects <= cfg.getReconnectionPolicyCount()) {
+						logger.error("Attempt: " + Integer.toString(attempts) + " failed, retrying with wait, reconnect: " + Integer.toString(reconnects) + " ...");
+						retry = true;
+						try {
+							// TODO : add parameter to specify sleep interval here ?
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							logger.warn("Thread.sleep interrupted");
+						}
+					} else {
+						retry = false;
+						logger.error("Attempt: " + Integer.toString(attempts) + " failed, giving up");
+					}
+				}
+			}
+		}
+		nodesFailed = Math.min((attempts-1),numberOfNodes);
+		// TODO : add proper stistics logging here , check if debuf level is enabled
+		logger.debug("Nodes failed: " + Integer.toString(nodesFailed));
+		
+		return response;
+	}
+	
 	@Override
 	public void bulkIndexSend() {
 
@@ -219,40 +285,32 @@ public class JESTClient implements Client {
 		
 		Bulk bulk = bulkBuilder.build();
 		BulkResult result = null;
-		boolean sendError = false;
-		try {
-			result = client.execute(bulk);
-		} catch (NoHttpResponseException e) {
-			logger.error("HTTP error. Cannot send bulk to server. Exception : " + e.getMessage());
-			sendError = true;
-		} catch (IOException e) {
-			// TODO : read timeout can happen here 
-			logger.error("IO error. Cannot send bulk to server. Exception : " + e.getMessage());
-			e.printStackTrace();
-			sendError = true;
-		}
 
+		// execute the request
+		result = executeRequest(bulk);
+
+		// evaluate the result of the bulk index operation 
 		int failedInserts = 0;
-		if (!sendError && result.isSucceeded()) {
-			logger.info("bulk send successfully, size = " + Integer.toString(bulkSize));
+		if (null == result) {
+			logger.error("Bulk send failed, response object is null. Bulk size = " + Integer.toString(bulkSize));			
 		} else {
-			if (result != null) {
-
+			if (result.isSucceeded()) {
+				// TODO : check if tracing level debug is active
+				logger.debug("Bulk send successfully, size = " + Integer.toString(bulkSize));
+			} else {
 				if (result.getErrorMessage() != null) {
-					logger.error("bulk send failed. bulk size = " + Integer.toString(bulkSize));
+					logger.error("Bulk send failed. bulk size = " + Integer.toString(bulkSize));
 					logger.error("Error: " + result.getErrorMessage());
 				} else {
+					// TODO : how to test this code path ? 
 					for (BulkResultItem item : result.getItems()) {
 						if (item.error != null) {
 							failedInserts++;
-							logger.error("bulk item indexing failed. " + item.error);
+							logger.error("Bulk item indexing failed. " + item.error);
 						}
 					}
-					logger.info("bulk send partially successful. Total items = " + Integer.toString(bulkSize) + ", failed = " + Integer.toString(failedInserts));
+					logger.error("Bulk request was partially successful. Total items = " + Integer.toString(bulkSize) + ", failed = " + Integer.toString(failedInserts));
 				}
-				
-			} else {
-				logger.error("bulk send failed. bulk size = " + Integer.toString(bulkSize));
 			}
 		}
 
