@@ -100,17 +100,22 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 
 		String hostname = (null != appConfig.get("hostName")) ? appConfig.get("hostName") : hostName;
 		String hostport = (null != appConfig.get("hostPort")) ? appConfig.get("hostPort") : Integer.toString(hostPort);
-		String nodelist = (null != appConfig.get("nodeList")) ? appConfig.get("nodeList") : nodeList;
-
+		String nodelistAppConfig = appConfig.get("nodeList"); // value from application configuration
+		String nodeslist = nodeList; // value from operator parameter
+		if (null != nodelistAppConfig) {
+			logger.error("nodeList (appConfig) contains: " + nodelistAppConfig.toString());
+			nodeslist = nodelistAppConfig; // app config overwrites operator parameter
+		}
+		
 		if (hostname != null || !hostport.equals("0")) {
-			if (null != nodelist) {
+			if (null != nodeslist) {
 				logger.warn("Parameter nodeList is specified but will be ignored because one or both parameters 'hostName' and 'hostPort' are also specified");
 			}
 			if (null == hostname) hostname="localhost";
 			if (hostport.equals("0")) hostport="9200";
 			cfg.addNode(hostname,hostport);
-		} else if (null != nodeList) {
-			String[] nodes = nodeList.split(",");
+		} else if (null != nodeslist) {
+			String[] nodes = nodeslist.split(",");
 			for (String n: nodes) {
 				String[] vals = n.split(":");
 				if (vals.length == 2) {
@@ -118,7 +123,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 				} else if (vals.length == 1) {
 					cfg.addNode(vals[0],"9200");
 				} else {
-					logger.error("Parameter nodeList contains invalid entries : " + nodeList.toString());
+					logger.error("Parameter nodeList contains invalid entries : " + nodeslist.toString());
 					throw new RuntimeException("Parameter nodeList contains invalid entries");
 				}
 			}
