@@ -8,8 +8,34 @@
 namespace com.ibm.streamsx.elasticsearch.sample.SSL ;
 use com.ibm.streamsx.elasticsearch::ElasticsearchIndex ;
 
+/**
+ * This sample SPL application demonstrates the use of the ElasticsearchIndex operator with SSL connection to the IBM cloud service Compose for Elasticsearch.
+ * 
+ * Set the nodeList, userName and password parameters according to your account.
+ * You can extract these parameters from the connection string of the Compose For Elasticsearch IBM Cloud service.
+ * 
+ * @param userName
+ * user name for the connection, default: admin
+ * 
+ * @param password
+ * Password for the connection
+ * 
+ * @param indexName
+ * Optional parameter change the index name, default: index1
+ * 
+ * @param nodeList
+ * URL to connect to Elasticsearch server
+ *
+  */
 composite Main
 {
+
+	param
+		expression<rstring> $userName: getSubmissionTimeValue("userName", "admin");
+		expression<rstring> $password: getSubmissionTimeValue("password");
+		expression<rstring> $indexName: getSubmissionTimeValue("indexName", "index1");
+		expression<rstring> $nodeList: getSubmissionTimeValue("nodeList");
+		
 	graph
 
 		stream<float32 counter> Documents = Beacon()
@@ -22,18 +48,17 @@ composite Main
 				counter = i++;
 		}
 
-		// set the nodeList, userNAme and password parameters according to your account
 		() as ElasticsearchSink = ElasticsearchIndex(Documents)
 		{
 			param
-				indexName : "index1" ;
-				nodeList : "portal-ssl123-35.bmix-dal-yp.composedb.com:54972";
+				indexName : $indexName;
+				nodeList : $nodeList;
 				sslEnabled : true;
 				sslDebug : false;
 				sslTrustStore : "cacerts";
 				sslTrustStorePassword : "123456";
-				userName : "user";
-				password : "passwd";
+				userName : $userName;
+				password : $password;
 		}
 
 }
