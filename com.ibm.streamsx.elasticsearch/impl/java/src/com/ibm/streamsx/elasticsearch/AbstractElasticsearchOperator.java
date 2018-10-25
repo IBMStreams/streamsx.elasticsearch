@@ -321,9 +321,9 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	
 	@Parameter(
 		name="appConfigName", optional = true,
-		description="Specifies the name of the application configuration that contains Cloudant connection related configuration parameters. The keys in the application configuration have the same name as the operator parameters."
-		+ "The following keys are supported: url, username, password, databaseName."
-		+ "If a value is specified in the application configuration and as operator parameter, the operator parameter value takes precedence."
+		description="Specifies the name of the application configuration that contains Elasticsearch connection related configuration parameters. The keys in the application configuration have the same name as the operator parameters."
+		+ " The following keys are supported: userName, password, hostName, hostPort, nodeList, reconnectionPolicyCount, sslEnabled, sslDebug, sslTrustAllCertificates, sslVerifyHostname, sslTrustStore, sslTrustStorePassword."
+		+ " If a value is specified in the application configuration and as operator parameter, the application configuration parameter value takes precedence."
 	)
 	public void setAppConfigName(String appConfigName) {
 		this.appConfigName = appConfigName;
