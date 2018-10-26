@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -20,6 +21,7 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
 import org.apache.log4j.Logger;
+
 
 import io.searchbox.action.AbstractAction;
 import io.searchbox.client.JestClient;
@@ -171,14 +173,18 @@ public class JESTClient implements Client {
        	  	factory.setHttpClientConfig(new HttpClientConfig.Builder(cfg.getNodeList())
         	  		.sslSocketFactory(sslSocketFactory)
         	  		.multiThreaded(false)
+       	  			.readTimeout(cfg.getReadTimeout())
+       	  			.connTimeout(cfg.getConnectionTimeout())
+       	  			.maxConnectionIdleTime(cfg.getMaxConnectionIdleTime(), TimeUnit.MILLISECONDS)
         	  		.build());
 		
 	    // use HTTP only 
 		} else {
        	  	factory.setHttpClientConfig(new HttpClientConfig.Builder(cfg.getNodeList())
        	  			.multiThreaded(false)
-       	  			.readTimeout(5000)
-       	  			.connTimeout(5000)
+       	  			.readTimeout(cfg.getReadTimeout())
+       	  			.connTimeout(cfg.getConnectionTimeout())
+       	  			.maxConnectionIdleTime(cfg.getMaxConnectionIdleTime(), TimeUnit.MILLISECONDS)
         	  		.build());
 		}
         
@@ -249,6 +255,7 @@ public class JESTClient implements Client {
 			
 			if (gotResponse) {
 				retry = false;
+				clientMetrics.setIsConnected(true);
 			} else {
 				clientMetrics.setIsConnected(false);
 				// if we have nodes left in the cluster, we try to immediately send the request to the next node
@@ -277,9 +284,10 @@ public class JESTClient implements Client {
 			}
 		}
 		nodesFailed = Math.min((attempts-1),numberOfNodes);
-		// TODO : add proper stistics logging here , check if debuf level is enabled
-		logger.debug("Nodes failed: " + Integer.toString(nodesFailed));
 		
+		if (logger.isDebugEnabled()) {
+			logger.debug("Nodes failed: " + Integer.toString(nodesFailed));
+		}
 		return response;
 	}
 	
@@ -309,8 +317,9 @@ public class JESTClient implements Client {
 		} else {
 			if (result.isSucceeded()) {
 				clientMetrics.incrementNumInserts();
-				// TODO : check if tracing level debug is active
-				logger.debug("Bulk send successfully, size = " + Integer.toString(bulkSize));
+				if (logger.isDebugEnabled()) {
+					logger.debug("Bulk send successfully, size = " + Integer.toString(bulkSize));
+				}
 			} else {
 				if (result.getErrorMessage() != null) {
 					logger.error("Bulk send failed. bulk size = " + Integer.toString(bulkSize));

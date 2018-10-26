@@ -40,6 +40,10 @@ public class Configuration
 	private boolean sslVerifyHostname = true;
 	private boolean sslDebug = false;
 	
+	private int readTimeout = 5000;
+	private int connectionTimeout = 20000;
+	private long maxConnectionIdleTime = 1500L;
+	
 	public static Configuration getDefaultConfiguration() {
 		return new Configuration();
 	}
@@ -179,6 +183,18 @@ public class Configuration
 		this.sslTrustAllCertificates = sslTrustAllCertificates;
 	}
 
+	public long getMaxConnectionIdleTime() {
+		return maxConnectionIdleTime;
+	}	
+
+	public int getReadTimeout() {
+		return readTimeout;
+	}
+	
+	public int getConnectionTimeout() {
+		return connectionTimeout;
+	}	
+	
 	@Override
 	public String toString() {
 		return "Configuration [reconnectionPolicyCount=" + reconnectionPolicyCount + ", nodeList=" + nodeList
