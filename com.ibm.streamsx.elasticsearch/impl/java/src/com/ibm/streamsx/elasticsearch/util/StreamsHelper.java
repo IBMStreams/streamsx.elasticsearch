@@ -17,8 +17,11 @@ import com.ibm.streams.operator.StreamSchema;
 import com.ibm.streams.operator.StreamingInput;
 import com.ibm.streams.operator.StreamingOutput;
 import com.ibm.streams.operator.Tuple;
+import com.ibm.streams.operator.OperatorContext.ContextCheck;
 import com.ibm.streams.operator.Type.MetaType;
 import com.ibm.streams.operator.compile.OperatorContextChecker;
+import com.ibm.streams.operator.state.CheckpointContext;
+import com.ibm.streams.operator.state.ConsistentRegionContext;
 
 /**
  * contains methods to validate compile and runtime checking
@@ -287,4 +290,30 @@ public class StreamsHelper {
 		}
 	}
 
+	public static void checkCheckpointConfig(OperatorContextChecker checker, String operatorName) {
+		OperatorContext opContext = checker.getOperatorContext();		
+		CheckpointContext chkptContext = opContext.getOptionalContext(CheckpointContext.class);
+		if (chkptContext != null) {
+			if (chkptContext.getKind().equals(CheckpointContext.Kind.OPERATOR_DRIVEN)) {
+				checker.setInvalidContext(
+						Messages.getString("ELASTICSEARCH_NOT_CHECKPOINT_OPERATOR_DRIVEN", operatorName), null);
+			}
+			if (chkptContext.getKind().equals(CheckpointContext.Kind.PERIODIC)) {
+				checker.setInvalidContext(
+						Messages.getString("ELASTICSEARCH_NOT_CHECKPOINT_PERIODIC", operatorName), null);
+			}			
+		}
+	}
+	
+	public static void checkConsistentRegion(OperatorContextChecker checker, String operatorName) {
+		// check that the sink operator is not at the start of the consistent region
+		OperatorContext opContext = checker.getOperatorContext();
+		ConsistentRegionContext crContext = opContext.getOptionalContext(ConsistentRegionContext.class);
+		if (crContext != null) {
+			if (crContext.isStartOfRegion()) {
+				checker.setInvalidContext(Messages.getString("ELASTICSEARCH_NOT_CONSISTENT_REGION_START", operatorName), null); 
+			}
+		}		
+	}
+	
 }

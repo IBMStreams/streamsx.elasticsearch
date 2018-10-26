@@ -344,14 +344,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	public void setAppConfigName(String appConfigName) {
 		this.appConfigName = appConfigName;
 	}	
-	
-	// checkers --------------------------------------------------------------------------------------
-	
-	@ContextCheck(compile = false, runtime = true)
-    public static void runtimeChecker(OperatorContextChecker checker) {
-		// StreamsHelper.validateOutputAttributeRuntime(checker, ERRCODE_ATTR_PARAM, null, MetaType.RSTRING);
-	}
-    
+   
     // parameter related getters ---------------------------------------------------------------------
 
 	public String getHostName() {

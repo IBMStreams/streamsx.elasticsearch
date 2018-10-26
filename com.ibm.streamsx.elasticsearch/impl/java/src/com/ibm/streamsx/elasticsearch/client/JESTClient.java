@@ -287,7 +287,7 @@ public class JESTClient implements Client {
 	public void bulkIndexSend() {
 
 		if (null == bulkBuilder) {
-			logger.info("the bulk is empty, nothing to send");
+			logger.debug("the bulk is empty, nothing to send");
 			return;
 		}
 		
@@ -332,5 +332,11 @@ public class JESTClient implements Client {
 		bulkSize = 0;
 		
 	}
+
+	
+	public void reset() {
+		bulkBuilder = null;
+		bulkSize = 0;
+	}	
 
 }

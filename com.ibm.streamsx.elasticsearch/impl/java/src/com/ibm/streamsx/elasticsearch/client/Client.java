@@ -55,4 +55,9 @@ public interface Client
 	 */
 	ClientMetrics getClientMetrics();
 	
+	/**
+	 * reset bulk builder
+	 */	
+	void reset();
+	
 }

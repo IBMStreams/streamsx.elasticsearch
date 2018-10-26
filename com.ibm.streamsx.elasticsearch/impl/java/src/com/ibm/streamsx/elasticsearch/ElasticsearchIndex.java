@@ -22,20 +22,27 @@ import com.ibm.streams.operator.StreamingInput;
 import com.ibm.streams.operator.Tuple;
 import com.ibm.streams.operator.TupleAttribute;
 import com.ibm.streams.operator.Type;
+import com.ibm.streams.operator.OperatorContext.ContextCheck;
+import com.ibm.streams.operator.StreamingData.Punctuation;
+import com.ibm.streams.operator.compile.OperatorContextChecker;
 import com.ibm.streams.operator.metrics.Metric;
 import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streams.operator.model.InputPortSet;
 import com.ibm.streams.operator.model.InputPortSet.WindowMode;
 import com.ibm.streams.operator.model.InputPortSet.WindowPunctuationInputMode;
+import com.ibm.streams.operator.state.Checkpoint;
+import com.ibm.streams.operator.state.ConsistentRegionContext;
+import com.ibm.streams.operator.state.StateHandler;
 import com.ibm.streams.operator.model.InputPorts;
 import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streams.operator.model.PrimitiveOperator;
 import com.ibm.streamsx.elasticsearch.client.Client;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.client.JESTClient;
+import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
 import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 
-@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription)
+@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription+ElasticsearchIndex.CR_DESC)
 @InputPorts({@InputPortSet(
 		id="0",
 		description=ElasticsearchIndex.iport0Description,
@@ -44,7 +51,7 @@ import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 		windowingMode=WindowMode.NonWindowed,
 		windowPunctuationInputMode=WindowPunctuationInputMode.Oblivious)
 })
-public class ElasticsearchIndex extends AbstractElasticsearchOperator
+public class ElasticsearchIndex extends AbstractElasticsearchOperator implements StateHandler
 {
 	// operator parameter members --------------------------------------------------------------------------- 
 	
@@ -78,6 +85,8 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	private Configuration config = null;
 	private ClientMetrics clientMetrics = null;
 	
+	private ConsistentRegionContext crContext;
+	
 	/**
 	 * Metrics
 	 */
@@ -93,6 +102,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 		super.initialize(context);
         logger.trace("Operator " + context.getName() + " initializing in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId());
  
+        crContext = context.getOptionalContext(ConsistentRegionContext.class);
         // Construct a new client config object
         config = getClientConfiguration();
         logger.info(config.toString());
@@ -176,13 +186,29 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	currentBulkSize++;
     	
     	// send bulk if needed
-    	if (currentBulkSize == bulkSize) {
+    	if ((currentBulkSize == bulkSize) && (!isConsistentRegion())) {
     		client.bulkIndexSend();
     		currentBulkSize = 0;
     		updateMetrics(clientMetrics);
     	}
-    	
     }
+    
+	@Override
+	public void processPunctuation(StreamingInput<Tuple> arg0, Punctuation punct)
+			throws Exception {
+		if (isConsistentRegion()) {
+			// do not send bulk if consistent region is enabled, commit on drain instead
+			super.processPunctuation(arg0, punct);
+		}
+		else {
+			if (punct == Punctuation.FINAL_MARKER) {
+				client.bulkIndexSend();
+				currentBulkSize = 0;
+	    		updateMetrics(clientMetrics);				
+			}
+			super.processPunctuation(arg0, punct);
+		}
+	}    
 
 	protected void updateMetrics (ClientMetrics clientMetrics) {
 		super.updateMetrics(clientMetrics);
@@ -269,6 +295,75 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	}
     	return null;
     }
+    
+    // ConsistentRegion --------------------------------------------------------------------------------------
+    
+	private boolean isConsistentRegion() {
+		if (crContext != null) {
+			return true;
+		}
+		return false;
+	}
+
+	private void reset() {
+		// reset members
+		currentBulkSize = 0;
+		client.reset();
+	}	
+
+	@Override
+	public void close() throws IOException {
+		// StateHandler implementation
+	}	
+	
+	@Override
+	public void checkpoint(Checkpoint checkpoint) throws Exception {
+		// StateHandler implementation
+		// nothing to checkpoint
+	}
+
+	@Override
+	public void drain() throws Exception {
+		// StateHandler implementation
+		logger.debug("DRAIN currentBulkSize=" + currentBulkSize);
+        long before = System.currentTimeMillis();
+
+    	// send bulk if needed
+    	client.bulkIndexSend();
+    	currentBulkSize = 0;
+    	updateMetrics(clientMetrics);
+
+        long after = System.currentTimeMillis();
+        final long duration = after - before;
+        logger.debug("DRAIN took " + duration + " ms");	
+	}
+
+	@Override
+	public void reset(Checkpoint checkpoint) throws Exception {
+		// StateHandler implementation
+		reset();
+		// nothing to restore from checkpoint
+	}
+
+	@Override
+	public void resetToInitialState() throws Exception {
+		// StateHandler implementation
+		reset();
+	}
+
+	@Override
+	public void retireCheckpoint(long id) throws Exception {
+		// StateHandler implementation
+	}    
+    
+    
+	// checkers --------------------------------------------------------------------------------------
+	
+	@ContextCheck(compile = true)
+    public static void compiletimeChecker(OperatorContextChecker checker) {
+		StreamsHelper.checkCheckpointConfig(checker, "ElasticsearchIndex");
+		StreamsHelper.checkConsistentRegion(checker, "ElasticsearchIndex");
+	}    
  
     // metrics ----------------------------------------------------------------------------------------------------------------
       
@@ -348,7 +443,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	}
 	
 	@Parameter(name="bulkSize", optional=true,
-		description="Specifies the size of the bulk to submit to Elasticsearch."
+		description="Specifies the size of the bulk to submit to Elasticsearch. The default value is 1. When operator is part of consistent region, this parameter is ignored."
 	)
 	public void setBulkSize(int bulkSize) {
 		this.bulkSize = bulkSize;
@@ -382,4 +477,21 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	static final String iport0Description = "Port that ingests tuples"
 			;
  
+	public static final String CR_DESC =
+			"\\n"+
+			"\\n+ Behavior in a consistent region\\n"+
+			"\\n"+
+			"\\nThe operator can participate in a consistent region. " +
+			"The operator can be part of a consistent region, but cannot be at the start of a consistent region.\\n" +
+			"\\nConsistent region supports that tuples are processed at least once.\\n" +
+			"\\nFailures during tuple processing or drain are handled by the operator and consistent region support:\\n" +
+			"* Consistent region replays tuples in case of failures\\n" +
+			"* Documents with same index name are overwritten\\n" +
+			"\\n" +
+			"\\nOn drain, the operator flushes its internal buffer and loads the documents to the Elasticsearch database.\\n" +
+			"\\n# Restrictions\\n"+
+			"\\nThe bulk size can not be configured when running in a consistent region. The parameter `bulkSize` is ignored and the bulk is submitted on drain."
+
+		   	;
+		
 }
