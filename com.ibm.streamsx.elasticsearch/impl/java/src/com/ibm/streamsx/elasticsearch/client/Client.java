@@ -50,4 +50,9 @@ public interface Client
 	 */
 	void close();
 	
+	/**
+	 * Client metrics and statistics
+	 */
+	ClientMetrics getClientMetrics();
+	
 }

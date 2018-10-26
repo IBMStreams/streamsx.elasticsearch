@@ -33,6 +33,7 @@ import com.ibm.streams.operator.model.PrimitiveOperator;
 import com.ibm.streamsx.elasticsearch.client.Client;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.client.JESTClient;
+import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 
 @PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription)
 @InputPorts({@InputPortSet(
@@ -75,14 +76,12 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	private Client client;
 	private int currentBulkSize = 0;
 	private Configuration config = null;
+	private ClientMetrics clientMetrics = null;
 	
 	/**
 	 * Metrics
 	 */
-	private Metric isConnected;
-	private Metric totalFailedRequests;
 	private Metric numInserts;
-	private Metric reconnectionCount;
 	
 	/**
      * Initialize this operator and create Elasticsearch client to send get requests to.
@@ -93,18 +92,19 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
 	public synchronized void initialize(OperatorContext context) throws Exception {
 		super.initialize(context);
         logger.trace("Operator " + context.getName() + " initializing in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId());
-
+ 
         // Construct a new client config object
         config = getClientConfiguration();
-        logger.debug(config.toString());
-        // TODO remove after testing
-        System.out.println(config.toString());
-        
+        logger.info(config.toString());
+       
+        clientMetrics = ClientMetrics.getClientMetrics();
         // create client 
         // TODO add robust error checking here
-        client = new JESTClient(config);
+        client = new JESTClient(config, clientMetrics);
         client.setLogger(logger);
         client.init();
+        
+        updateMetrics(clientMetrics);
 	}
 
 	/**
@@ -179,17 +179,17 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     	if (currentBulkSize == bulkSize) {
     		client.bulkIndexSend();
     		currentBulkSize = 0;
-
-    		// TODO : handle metrics here 
-    		// Metric isConnected;
-    		// Metric totalFailedRequests;
-    		// Metric numInserts;
-    		// Metric reconnectionCount;
-
+    		updateMetrics(clientMetrics);
     	}
     	
     }
 
+	protected void updateMetrics (ClientMetrics clientMetrics) {
+		super.updateMetrics(clientMetrics);
+		// handle numInserts metric here 
+		this.numInserts.setValue(clientMetrics.getNumInserts());
+	}    
+    
 	/**
      * Shutdown this operator and close Elasticsearch API client.
      * @throws Exception Operator failure, will cause the enclosing PE to terminate.
@@ -271,27 +271,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     }
  
     // metrics ----------------------------------------------------------------------------------------------------------------
-    
-    /**
-     * isConnected metric describes current connection status to Elasticsearch server.
-     * @param isConnected
-     */
-    @CustomMetric(name = "isConnected", kind = Metric.Kind.GAUGE,
-    		description = "Describes whether we are currently connected to Elasticsearch server.")
-    public void setIsConnected(Metric isConnected) {
-    	this.isConnected = isConnected;
-    }
-    
-    /**
-     * totalFailedRequests describes the number of failed inserts/gets over the lifetime of the operator.
-     * @param totalFailedRequests
-     */
-    @CustomMetric(name = "totalFailedRequests", kind = Metric.Kind.COUNTER,
-    		description = "The number of failed inserts/gets over the lifetime of the operator.")
-    public void setTotalFailedRequests(Metric totalFailedRequests) {
-    	this.totalFailedRequests = totalFailedRequests;
-    }
-    
+      
     /**
      * numInserts metric describes the number of times a record has been successfully written.
      * @param numInserts
@@ -300,16 +280,6 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator
     		description = "The number of times a record has been written to the Elasticsearch server.")
     public void setNumInserts(Metric numInserts) {
     	this.numInserts = numInserts;
-    }
-    
-    /**
-     * isConnected metric describes current connection status to Elasticsearch server.
-     * @param reconnectionCount
-     */
-    @CustomMetric(name = "reconnectionCount", kind = Metric.Kind.COUNTER,
-    		description = "The number of times the operator has tried reconnecting to the server since the last successful connection.")
-    public void setReconnectionCount(Metric reconnectionCount) {
-    	this.reconnectionCount = reconnectionCount;
     }
     
     // operator parameters setters ------------------------------------------------------------------------------------------------------

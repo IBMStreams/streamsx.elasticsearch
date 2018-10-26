@@ -19,7 +19,10 @@ import com.ibm.streams.operator.OperatorContext.ContextCheck;
 import com.ibm.streams.operator.compile.OperatorContextChecker;
 import com.ibm.streams.operator.model.Libraries;
 import com.ibm.streams.operator.model.Parameter;
+import com.ibm.streams.operator.metrics.Metric;
+import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
+import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 
 /**
  * This class should be used as parent for all ES operators
@@ -28,6 +31,14 @@ import com.ibm.streamsx.elasticsearch.client.Configuration;
 @Libraries("opt/downloaded/*")
 public class AbstractElasticsearchOperator extends AbstractOperator
 {
+	
+	/**
+	 * Metrics
+	 */
+	private Metric isConnected;
+	private Metric totalFailedRequests;
+	private Metric reconnectionCount;
+	
 	// parameter related members ----------------------------------------------------------------------
 	
 	// the host and port of the elastic search server (deprecated)
@@ -103,7 +114,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 		String nodelistAppConfig = appConfig.get("nodeList"); // value from application configuration
 		String nodeslist = nodeList; // value from operator parameter
 		if (null != nodelistAppConfig) {
-			logger.error("nodeList (appConfig) contains: " + nodelistAppConfig.toString());
+			logger.info("nodeList (appConfig) contains: " + nodelistAppConfig.toString());
 			nodeslist = nodelistAppConfig; // app config overwrites operator parameter
 		}
 		
@@ -394,5 +405,49 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	public String getSslTrustStorePassword() {
 		return sslTrustStorePassword;
 	}
+	
+	// metrics ----------------------------------------------------------------------------------------------------------------
 
+	protected void updateMetrics (ClientMetrics clientMetrics) {
+		// handle common metrics here 
+		if (clientMetrics.getIsConnected()) {
+			this.isConnected.setValue(1);
+		}
+		else {
+			this.isConnected.setValue(0);
+		}
+		this.totalFailedRequests.setValue(clientMetrics.getTotalFailedRequests());
+		this.reconnectionCount.setValue(clientMetrics.getReconnectionCount());
+	}  	
+	
+    /**
+     * isConnected metric describes current connection status to Elasticsearch server.
+     * @param isConnected
+     */
+    @CustomMetric(name = "isConnected", kind = Metric.Kind.GAUGE,
+    		description = "Describes whether we are currently connected to Elasticsearch server.")
+    public void setIsConnected(Metric isConnected) {
+    	this.isConnected = isConnected;
+    }
+    
+    /**
+     * totalFailedRequests describes the number of failed inserts/gets over the lifetime of the operator.
+     * @param totalFailedRequests
+     */
+    @CustomMetric(name = "totalFailedRequests", kind = Metric.Kind.COUNTER,
+    		description = "The number of failed inserts/gets over the lifetime of the operator.")
+    public void setTotalFailedRequests(Metric totalFailedRequests) {
+    	this.totalFailedRequests = totalFailedRequests;
+    }
+  
+    /**
+     * isConnected metric describes current connection status to Elasticsearch server.
+     * @param reconnectionCount
+     */
+    @CustomMetric(name = "reconnectionCount", kind = Metric.Kind.COUNTER,
+    		description = "The number of times the operator has tried reconnecting to the server since the last successful connection.")
+    public void setReconnectionCount(Metric reconnectionCount) {
+    	this.reconnectionCount = reconnectionCount;
+    }	
+	
 }

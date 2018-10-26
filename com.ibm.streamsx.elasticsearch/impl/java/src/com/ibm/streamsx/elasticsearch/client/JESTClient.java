@@ -42,6 +42,7 @@ public class JESTClient implements Client {
 	// external properties
 	private Logger logger = null;
 	private Configuration cfg = null;
+	private ClientMetrics clientMetrics = null;
 	
 	// internal properties
 	private JestClient client = null;
@@ -54,9 +55,10 @@ public class JESTClient implements Client {
 	private boolean useBasicAuth = false;
 	private String authHeader = null;
 
-	public JESTClient(Configuration config) {
+	public JESTClient(Configuration config, ClientMetrics clientMetrics) {
 		super();
 		this.cfg = config;
+		this.clientMetrics = clientMetrics;
 	}
 
 	@Override
@@ -64,7 +66,12 @@ public class JESTClient implements Client {
 		cfg = config;
 		logger.trace("Configuration set: " + config.toString() );
 	}
-
+	
+	@Override
+	public ClientMetrics getClientMetrics() {
+		return clientMetrics;
+	}	
+	
 	@Override
 	public void setLogger(Logger logger) {
 		this.logger = logger;
@@ -176,6 +183,9 @@ public class JESTClient implements Client {
 		}
         
         client = factory.getObject();
+        
+        clientMetrics.setIsConnected(true);
+
         return true;
 	}
 
@@ -240,6 +250,7 @@ public class JESTClient implements Client {
 			if (gotResponse) {
 				retry = false;
 			} else {
+				clientMetrics.setIsConnected(false);
 				// if we have nodes left in the cluster, we try to immediately send the request to the next node
 				if (attempts < numberOfNodes) {
 					retry = true;
@@ -248,6 +259,7 @@ public class JESTClient implements Client {
 				// if all nodes failed, we try to reconnect with a wait interval 
 				{
 					reconnects++;
+					clientMetrics.incrementReconnectionCount();
 					if (reconnects <= cfg.getReconnectionPolicyCount()) {
 						logger.error("Attempt: " + Integer.toString(attempts) + " failed, retrying with wait, reconnect: " + Integer.toString(reconnects) + " ...");
 						retry = true;
@@ -292,9 +304,11 @@ public class JESTClient implements Client {
 		// evaluate the result of the bulk index operation 
 		int failedInserts = 0;
 		if (null == result) {
-			logger.error("Bulk send failed, response object is null. Bulk size = " + Integer.toString(bulkSize));			
+			logger.error("Bulk send failed, response object is null. Bulk size = " + Integer.toString(bulkSize));
+			clientMetrics.incrementTotalFailedRequests();
 		} else {
 			if (result.isSucceeded()) {
+				clientMetrics.incrementNumInserts();
 				// TODO : check if tracing level debug is active
 				logger.debug("Bulk send successfully, size = " + Integer.toString(bulkSize));
 			} else {
