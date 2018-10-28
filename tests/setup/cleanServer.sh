@@ -1,6 +1,9 @@
 #!/bin/bash
 
-version=$ELA_VERSION
+version=${1:-${ELA_VERSION}}
+if [ "$version" == "" ] ; then
+	version="6.2.2"
+fi
 serverDir1=server${version}_1
 serverDir2=server${version}_2
 

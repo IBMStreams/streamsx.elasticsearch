@@ -1,56 +1,24 @@
 # Submission test for Streams
-##--variantList='submitJob submitJobWithParam submitJobAndIntercept submitJobInterceptAndSuccess submitJobLogAndIntercept doubleJobCancel'
+##--variantList=''
+
 PREPS='copyOnly splCompile'
-STEPS='submitJob checkJobNo waitForFin cancelJob myEvaluate'
+STEPS='submitJob checkJobNo waitForFin cancelJob Evaluate'
 FINS='cancelJob'
 
-myEvaluate() {
-	if ! linewisePatternMatch "$TT_dataDir/Tuples" '' '*http://httpbin.org/get*'; then
-		setFailure 'No match found'
+Evaluate() {
+	if ! echoAndExecute es_dumpIndex index1 5 id ; then
+		setFailure 'Cannot dump index1'
 	fi
-}
+	if ! echoAndExecute es_dumpIndex index2 5 id ; then
+		setFailure 'Cannot dump index2'
+	fi
 
-mySubmit() {
-	case $TTRO_variantCase in
-	submitJob)
-		submitJob
-		echo "-------- TTTT_jobno=$TTTT_jobno";;
-#	submitJobWithParam)
-#		submitJob -P 'aparam=bla bla'
-#		echo "-------- TTTT_jobno=$TTTT_jobno";;
-#	submitJobAndIntercept)
-#		submitJobAndIntercept
-#		echo "-------- TTTT_jobno=$TTTT_jobno"
-#		echo "-------- TTTT_result=$TTTT_result";;
-#	submitJobInterceptAndSuccess)
-#		submitJobInterceptAndSuccess
-#		echo "-------- TTTT_jobno=$TTTT_jobno"
-#		echo "-------- TTTT_result=$TTTT_result";;
-#	submitJobLogAndIntercept)
-#		submitJobLogAndIntercept
-#		echo "-------- TTTT_jobno=$TTTT_jobno"
-#		echo "-------- TTTT_result=$TTTT_result"
-#		echo "--------"
-#		cat "$TT_evaluationFile";;
-#	doubleJobCancel)
-#		submitJobLogAndIntercept
-#		echo "-------- TTTT_jobno=$TTTT_jobno"
-#		echo "-------- TTTT_result=$TTTT_result"
-#		cat "$TT_evaluationFile";;
-	esac
-}
+	if ! echoAndExecute es_matchIndexDocFields index1 _index _type id rmsg umsg int32val int64val uint32val uint64val float32val float64val boolval ; then
+		setFailure 'Match document fields in index1 failed'
+	fi
+	if ! echoAndExecute es_matchIndexDocFields index2 _index _type id rmsg umsg int32val int64val uint32val uint64val float32val float64val boolval ; then
+		setFailure 'Match document fields in index2 failed'
+	fi
 
-myCancelJob() {
-
-	cancelJob
-	
-#	if [[ $TTRO_variantCase == 'doubleJobCancel' ]]; then
-#		cancelJob
-#		echo "-------- TTTT_jobno=$TTTT_jobno"
-#		echo "--------- and one more cancel job"
-#		cancelJob
-#	else
-#		cancelJob
-#	fi
-
+	return 0
 }

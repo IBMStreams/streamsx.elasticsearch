@@ -1,7 +1,7 @@
 
+# actions before the testsuite start
+PREPS='es_ensureDomainStarted es_ensureInstanceStarted es_installServer es_startNode'
 
-#PREPS='cleanUpInstAndDomainAtStart mkDomain startDomain mkInst startInst startFtpServer checkFtpServer prepFtpServer startHttpServer'
-#FINS='stopFtpServer cleanUpInstAndDomainAtStop stopHttpServer'
+# actions after the testsuite completed
+#FINS='es_stopNode es_cleanServer'
 
-#PREPS='cleanUpInstAndDomainAtStart mkDomain startDomain mkInst startInst'
-#FINS='cleanUpInstAndDomainAtStop'

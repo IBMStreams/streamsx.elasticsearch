@@ -4,53 +4,62 @@
 * All Rights Reserved. *
 *******************************************************************************
 */
-
-//namespace com.ibm.streamsx.testapp ;
-
-
-
 use com.ibm.streamsx.elasticsearch::* ;
-//use com.ibm.streamsx.elasticsearch::ElasticsearchIndex ;
-
 use com.ibm.streamsx.testframe::FileSink1;
 
-/**
- * 
- * 
- */
 composite Main
 {
-
   type 
-  
-  	DataTuple = tuple <rstring id, rstring msg>  ;
-  
+  	DataTuple = tuple <
+  		int32 id,
+  		rstring rmsg,
+  		ustring umsg,
+  		int32 int32val,
+  		int64 int64val,
+  		uint32 uint32val,
+  		uint64 uint64val,
+  		float32 float32val,
+  		float64 float64val,
+  		boolean boolval
+  	>;
   
   graph
   
   	(stream<DataTuple> Data) as DataSource = Beacon()                      
     {                                                                      
       param                                                                
-        period : 2.0;                                                      
-        initDelay: 5.0;
-        iterations : 3u;
-        
+        iterations : 4u;
+        period : 0.01;
       output                                                               
-        Data:	id = (rstring)IterationCount(),
-        		msg = "This is my message #" + (rstring)IterationCount();                              
+        Data:	id = (int32)IterationCount(),
+        		rmsg = "This is message number " + (rstring)IterationCount(),
+        		umsg = (ustring)"This is message number " + (ustring)IterationCount(),
+        		int32val = (int32)IterationCount(),
+        		int64val = (int64)IterationCount(),
+        		uint32val = (uint32)IterationCount(),
+        		uint64val = (uint64)IterationCount(),
+        		float32val = (float32)IterationCount(),
+        		float64val = (float64)IterationCount(),
+        		boolval = true;
     }
     
     
-    () as ElasticsearchDB = ElasticsearchIndex(Data)
+    () as Elasticsearch1 = ElasticsearchIndex(Data)
 	{
 		param
-			nodeList : "localhost:9300" ;
-			indexName : "basic_test_index" ;
-			typeName : "basic_test_type" ;
-			storeTimestamps : false ;
-			//idNameAttribute : id ;
+			nodeList : "localhost:9200" ;
+			indexName : "index1" ;
+			typeName : "type1" ;
 	}
 
+    () as Elasticsearch2 = ElasticsearchIndex(Data)
+	{
+		param
+			nodeList : "localhost:9200" ;
+			indexName : "index2" ;
+			typeName : "type1" ;
+			bulkSize : 2;
+	}
 
     stream<DataTuple> DelayedData = Delay(Data)
     {
@@ -59,5 +68,5 @@ composite Main
     }
     
 
-    () as TestStopSink = FileSink1(Data) {}
+    () as TestStopSink = FileSink1(DelayedData) {}
 }

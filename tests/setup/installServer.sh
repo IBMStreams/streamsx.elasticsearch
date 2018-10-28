@@ -1,6 +1,9 @@
 #!/bin/bash
 
-version=$ELA_VERSION
+version=${1:-${ELA_VERSION}}
+if [ "$version" == "" ] ; then
+	version="6.2.2"
+fi
 tarfile=elasticsearch-${version}.tar.gz
 origDir=elasticsearch-${version}
 serverDir1=server${version}_1
@@ -8,10 +11,14 @@ serverDir2=server${version}_2
 
 # load ES software if not present 
 if [ ! -f $tarfile ]; then
-	wget https://artifacts.elastic.co/downloads/elasticsearch/$tarfile
+	wget --progress=dot:mega https://artifacts.elastic.co/downloads/elasticsearch/$tarfile
 fi
 
-# remove directories
+# stop any nodes if they are still running
+./stopNode.sh 1 $version
+./stopNode.sh 2 $version
+
+# remove install directories
 rm -rf $serverDir1 $serverDir2
 
 # extract file and create 2 copies for cluster usage
