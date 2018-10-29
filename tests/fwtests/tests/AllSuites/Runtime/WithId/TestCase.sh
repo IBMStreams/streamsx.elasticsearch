@@ -13,10 +13,10 @@ Evaluate() {
 		setFailure 'Cannot dump index2'
 	fi
 
-	if ! echoAndExecute es_matchIndexDocFields index1 _index _type id rmsg umsg int32val int64val uint32val uint64val float32val float64val boolval ; then
+	if ! echoAndExecute es_matchIndexDocFields index1 _index _type _id rmsg id ; then
 		setFailure 'Match document fields in index1 failed'
 	fi
-	if ! echoAndExecute es_matchIndexDocFields index2 _index _type id rmsg umsg int32val int64val uint32val uint64val float32val float64val boolval ; then
+	if ! echoAndExecute es_matchIndexDocFields index2 _index _type _id rmsg id key ; then
 		setFailure 'Match document fields in index2 failed'
 	fi
 

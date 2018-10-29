@@ -1,0 +1,56 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  type 
+  	DataTuple = tuple <
+  		rstring key,
+  		int32 id,
+  		rstring rmsg
+  	>;
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Beacon()                      
+    {                                                                      
+      param                                                                
+        iterations : 5u;
+        //period : 0.01;
+      output                                                               
+        Data:	
+        		key = "docid_" + (rstring)IterationCount(),
+        		id = (int32)IterationCount(),
+        		rmsg = "This is message number " + (rstring)IterationCount();
+    }
+    
+    
+    () as Elasticsearch1 = ElasticsearchIndex(Data)
+	{
+		param
+			indexName : "index1";
+			idNameAttribute : key;
+
+	}
+
+    () as Elasticsearch2 = ElasticsearchIndex(Data)
+	{
+		param
+			indexName : "index2";
+			idName : "singleton";
+	}
+
+    stream<DataTuple> DelayedData = Delay(Data)
+    {
+      param delay      : 5.0;
+            bufferSize : 250u;
+    }
+
+    () as TestStopSink = FileSink1(DelayedData) {}
+}

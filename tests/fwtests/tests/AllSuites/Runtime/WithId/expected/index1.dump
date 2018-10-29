@@ -1,0 +1,81 @@
+{
+  "took" : 101,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 5,
+    "max_score" : null,
+    "hits" : [
+      {
+        "_index" : "index1",
+        "_type" : "_doc",
+        "_id" : "docid_0",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 0",
+          "id" : 0
+        },
+        "sort" : [
+          0
+        ]
+      },
+      {
+        "_index" : "index1",
+        "_type" : "_doc",
+        "_id" : "docid_1",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 1",
+          "id" : 1
+        },
+        "sort" : [
+          1
+        ]
+      },
+      {
+        "_index" : "index1",
+        "_type" : "_doc",
+        "_id" : "docid_2",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 2",
+          "id" : 2
+        },
+        "sort" : [
+          2
+        ]
+      },
+      {
+        "_index" : "index1",
+        "_type" : "_doc",
+        "_id" : "docid_3",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 3",
+          "id" : 3
+        },
+        "sort" : [
+          3
+        ]
+      },
+      {
+        "_index" : "index1",
+        "_type" : "_doc",
+        "_id" : "docid_4",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 4",
+          "id" : 4
+        },
+        "sort" : [
+          4
+        ]
+      }
+    ]
+  }
+}

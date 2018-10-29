@@ -199,3 +199,27 @@ function es_matchIndexDocFields {
 	return 0
 }
 export -f es_matchIndexDocFields
+
+TTRO_help_es_dropIndex='
+# Function es_dropIndex
+#	Delete an index from the server
+#   $1 the name of the index'
+function es_dropIndex {
+	isDebug && printDebug "$FUNCNAME $*"
+
+	qurl="localhost:9200"
+	qstring="${qurl}/$1"
+	printInfo "Drop index string: $qstring"
+	
+	curl -s -S -X DELETE "$qstring"
+	rc=$?
+	if [ $rc != 0 ] ; then
+		printError "Cannot delete index $1 : $rc"
+		return $errTestFail
+	fi
+	return 0
+}
+export -f es_dropIndex
+
+
+
