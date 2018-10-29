@@ -78,6 +78,11 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	// the password for the truststore file
 	private String sslTrustStorePassword = null;
 
+	// timeouts for connection handling
+	private int readTimeout = 5000;
+	private int connectionTimeout = 20000;
+	private long maxConnectionIdleTime = 1500L;
+	
 	// internal members ------------------------------------------------------------------------------
 	
 	// Logger for tracing.
@@ -205,7 +210,25 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 		} else {
 			cfg.setSslTrustStorePassword(sslTrustStorePassword);
 		}
+		
+		if (null != appConfig.get("readTimeout")) {
+			cfg.setReadTimeout(Integer.parseInt(appConfig.get("readTimeout")));
+		} else {
+			cfg.setReadTimeout(readTimeout);
+		}
 
+		if (null != appConfig.get("connectionTimeout")) {
+			cfg.setConnectionTimeout(Integer.parseInt(appConfig.get("connectionTimeout")));
+		} else {
+			cfg.setConnectionTimeout(connectionTimeout);
+		}
+
+		if (null != appConfig.get("maxConnectionIdleTime")) {
+			cfg.setMaxConnectionIdleTime(Long.parseLong(appConfig.get("maxConnectionIdleTime")));
+		} else {
+			cfg.setMaxConnectionIdleTime(maxConnectionIdleTime);
+		}
+		
 		return cfg;
 	}
 	
@@ -235,18 +258,26 @@ public class AbstractElasticsearchOperator extends AbstractOperator
     // Connection related parameters -------------------------------------------------------------- 
     
     @Parameter(name="hostName", optional=true,
-    	description="Specifies the hostname of the Elasticsearch server (default: localhost)."
+    	description="Specifies the hostname of the Elasticsearch server. The default is 'localhost'. "
+    	+ "If you specify a protocol prefix like 'http://' or 'https://' it is ignored, because the protocol is determined by "
+    	+ "the parameter 'sslEnabled'. If that is set to true, HTTPS is used, otherwise HTTP is used. "
+    	+ "This parameter can be overwritten by the application configuration. "
+    	+ "NOTE: this parameter is deprecated, use the 'nodeList' parameter instead. "
     )
     public void setHostName(String hostName) {
 		if (hostName.matches("^http://.*")) {
 			this.hostName = hostName.substring(7);
+		} else if (hostName.matches("^https://.*")) {
+			this.hostName = hostName.substring(8);
 		} else {
 	 		this.hostName = hostName;
  		}
     }
 
     @Parameter(name="hostPort", optional=true,
-    	description="Specifies the hostport of the Elasticsearch server (default: 9200)."
+    	description="Specifies the REST port of the Elasticsearch server. The default port is 9200. "
+    	+ "This parameter can be overwritten by the application configuration. "
+    	+ "NOTE: this parameter is deprecated, use the 'nodeList' parameter instead. "
     )
 	public void setHostPort(int hostPort) {
 		this.hostPort = hostPort;
@@ -263,19 +294,26 @@ public class AbstractElasticsearchOperator extends AbstractOperator
     }
     
     @Parameter(name="reconnectionPolicyCount", optional=true,
-		description="Specifies the number of times to attempt reconnection to the "
-		+ "Elasticsearch server, upon disconnection."
+		description="Specifies the number of reconnection attemps to th Elasticsearch server, upon disconnection. "
+	    + "If more than one node is specified in the 'nodeList' parameter, all remaining nodes are tried immediately, before the reconnection count starts. "
+		+ "This parameter can be overwritten by the application configuration. "
 	)
 	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
 		this.reconnectionPolicyCount = reconnectionPolicyCount;
 	}
    
-    @Parameter(name="userName", description="The username used to authenticate against the database.", optional=true)
+    @Parameter(name="userName", optional=true,
+    	description="The username used for HTTP basic authentication. If parameter 'sslEnabled' is false, the username is transmitted in cleartext. "
+    	+ "This parameter can be overwritten by the application configuration. "
+    )
     public void setUsername(String userName) {
     	this.userName = userName;
     }
 
-    @Parameter(name="password", description="The password for the username.", optional=true)
+    @Parameter(name="password", optional=true,
+    	description="The password used for HTTP basic authentication. If parameter 'sslEnabled' is false, the password is transmitted in cleartext. "
+    	+ "This parameter can be overwritten by the application configuration. "
+    )
     public void setPassword(String password) {
     	this.password = password;
     }
@@ -290,7 +328,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
     
     @Parameter(name="sslDebug", optional=true,
        	description="If SSL/TLS protocol debugging is enabled, all protocol data and information is logged to the console. "
-       	+ "This will help with debugging TLS connection problems. The default is 'false'. "
+       	+ "Use this to debug TLS connection problems. The default is 'false'. "
     	+ "This parameter can be overwritten by the application configuration."	
     )
 	public void setSslDebug(boolean sslDebug) {
@@ -307,7 +345,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	}
 
     @Parameter(name="sslVerifyHostname", optional=true,
-       	description="If set to false, the SSL/TLS layer will not verify the hostname in the certificate against the actual name of the server host. "
+       	description="If set to false, the SSL/TLS layer will not verify the hostname in the server certificate against the actual name of the server host. "
        	+ "WARNING: this is unsecure and should only be used for debugging purposes. The default is 'true'. "
     	+ "This parameter can be overwritten by the application configuration."	
     )
@@ -316,30 +354,56 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 	}
 
     @Parameter(name="sslTrustStore", optional=true,
-    	description="This is the name of a file containing trusted certificates. The format is the common Java truststore format. "
-        + "Use this parametere, if the server certificate is signed by a CA that is not trusted per default with your current Java version. "
-        + "For example use it with self-signed certificates. This parameter can be overwritten by the application configuration."	
+    	description="Specifies the name of a file containing trusted certificates. The format is the common Java truststore format, "
+    	+ "and you can use the JAVA keytool command to create and manage truststore files. "
+        + "Use this parameter if the Elasticsearch server certificate is signed by a CA that is not trusted per default with your current Java version, "
+        + "or uses a self-signed certificate. "
+        + "This parameter can be overwritten by the application configuration."	
     )
     public void setSslTrustStore(String sslTrustStore) {
 		this.sslTrustStore = sslTrustStore;
 	}
 
     @Parameter(name="sslTrustStorePassword", optional=true,
-    	description="If set to false, the SSL/TLS layer will not verify the hostname in the certificate against the actual name of the server host. "
-        + "WARNING: this is unsecure and should only be used for debugging purposes. The default is 'true'. "
-        + "This parameter can be overwritten by the application configuration."	
+    	description="Specify the password used to access the Truststore file, specified in the 'sslTrustStore' parameter. "
+        + "This parameter can be overwritten by the application configuration. "	
     )
 	public void setSslTrustStorePassword(String sslTrustStorePassword) {
 		this.sslTrustStorePassword = sslTrustStorePassword;
 	}
 
-    // other common parameters -----------------------------------------------------------------------
-	
+    @Parameter(name="readTimeout", optional=true,
+       	description="The timeout for waiting for a REST response from the server node. Specified in milliseconds. "
+       	+ "The default value is 5000 (5 seconds). "
+        + "This parameter can be overwritten by the application configuration. "	
+    )
+    public void setReadTimeout(int readTimeout) {
+		this.readTimeout = readTimeout;
+	}
+    
+    @Parameter(name="connectionTimeout", optional=true,
+    	description="The timeout for waiting on establishment of the TCP connection to the server node. Specified in milliseconds. "
+    	+ "The default value is 20000 (20 seconds). "
+        + "This parameter can be overwritten by the application configuration. "	
+    )
+	public void setConnectionTimeout(int connectionTimeout) {
+		this.connectionTimeout = connectionTimeout;
+	}
+
+    @Parameter(name="maxConnectionIdleTime", optional=true,
+      	description="If the TCP connection to a server node is not used for that time, it is closed. Specified in milliseconds. "
+      	+ "The default value is 1500 (1.5 seconds). "
+        + "This parameter can be overwritten by the application configuration. "	
+    )
+	public void setMaxConnectionIdleTime(long maxConnectionIdleTime) {
+		this.maxConnectionIdleTime = maxConnectionIdleTime;
+	}
+
 	@Parameter(
 		name="appConfigName", optional = true,
-		description="Specifies the name of the application configuration that contains Elasticsearch connection related configuration parameters. The keys in the application configuration have the same name as the operator parameters."
-		+ " The following keys are supported: userName, password, hostName, hostPort, nodeList, reconnectionPolicyCount, sslEnabled, sslDebug, sslTrustAllCertificates, sslVerifyHostname, sslTrustStore, sslTrustStorePassword."
-		+ " If a value is specified in the application configuration and as operator parameter, the application configuration parameter value takes precedence."
+		description="Specifies the name of the application configuration that contains Elasticsearch connection related configuration parameters. The keys in the application configuration have the same name as the operator parameters. "
+		+ " The following keys are supported: userName, password, hostName, hostPort, nodeList, reconnectionPolicyCount, sslEnabled, sslDebug, sslTrustAllCertificates, sslVerifyHostname, sslTrustStore, sslTrustStorePassword. "
+		+ " If a value is specified in the application configuration and as operator parameter, the application configuration parameter value takes precedence. "
 	)
 	public void setAppConfigName(String appConfigName) {
 		this.appConfigName = appConfigName;
@@ -399,6 +463,18 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 		return sslTrustStorePassword;
 	}
 	
+	public int getReadTimeout() {
+		return readTimeout;
+	}
+
+	public int getConnectionTimeout() {
+		return connectionTimeout;
+	}
+
+	public long getMaxConnectionIdleTime() {
+		return maxConnectionIdleTime;
+	}
+
 	// metrics ----------------------------------------------------------------------------------------------------------------
 
 	protected void updateMetrics (ClientMetrics clientMetrics) {

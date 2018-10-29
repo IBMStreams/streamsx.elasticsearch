@@ -195,6 +195,18 @@ public class Configuration
 		return connectionTimeout;
 	}	
 	
+	public void setReadTimeout(int readTimeout) {
+		this.readTimeout = readTimeout;
+	}
+
+	public void setConnectionTimeout(int connectionTimeout) {
+		this.connectionTimeout = connectionTimeout;
+	}
+
+	public void setMaxConnectionIdleTime(long maxConnectionIdleTime) {
+		this.maxConnectionIdleTime = maxConnectionIdleTime;
+	}
+
 	@Override
 	public String toString() {
 		return "Configuration [reconnectionPolicyCount=" + reconnectionPolicyCount + ", nodeList=" + nodeList
@@ -203,7 +215,9 @@ public class Configuration
 				+ ", sslEnabled=" + sslEnabled + ", sslTrustStore=" + sslTrustStore + ", sslTrustStorePassword="
 				+ sslTrustStorePassword + ", sslKeyStore=" + sslKeyStore + ", sslKeyStorePassword="
 				+ sslKeyStorePassword + ", sslTrustAllCertificates=" + sslTrustAllCertificates + ", sslVerifyHostname="
-				+ sslVerifyHostname + ", sslDebug=" + sslDebug + ", getNodeList()=" + getNodeList() + "]";
+				+ sslVerifyHostname + ", sslDebug=" + sslDebug + ", readTimeout=" + readTimeout + ", connectionTimeout="
+				+ connectionTimeout + ", maxConnectionIdleTime=" + maxConnectionIdleTime + ", getNodeList()="
+				+ getNodeList() + "]";
 	}
 
 }
