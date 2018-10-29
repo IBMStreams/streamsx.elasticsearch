@@ -15,14 +15,12 @@ import org.apache.log4j.Logger;
 
 import com.ibm.streams.operator.AbstractOperator;
 import com.ibm.streams.operator.OperatorContext;
-import com.ibm.streams.operator.OperatorContext.ContextCheck;
-import com.ibm.streams.operator.compile.OperatorContextChecker;
-import com.ibm.streams.operator.model.Libraries;
-import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streams.operator.metrics.Metric;
 import com.ibm.streams.operator.model.CustomMetric;
-import com.ibm.streamsx.elasticsearch.client.Configuration;
+import com.ibm.streams.operator.model.Libraries;
+import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
+import com.ibm.streamsx.elasticsearch.client.Configuration;
 
 /**
  * This class should be used as parent for all ES operators
@@ -494,7 +492,9 @@ public class AbstractElasticsearchOperator extends AbstractOperator
      * @param isConnected
      */
     @CustomMetric(name = "isConnected", kind = Metric.Kind.GAUGE,
-    		description = "Describes whether we are currently connected to Elasticsearch server.")
+    	description = "Describes whether we are currently connected to Elasticsearch server. "
+    	+ "This is set to 0 after all cluster nodes became unreachable and the maximum reconnection attempts were unsuccessful. Otherwise the value is 1. "
+    )
     public void setIsConnected(Metric isConnected) {
     	this.isConnected = isConnected;
     }
@@ -514,7 +514,9 @@ public class AbstractElasticsearchOperator extends AbstractOperator
      * @param reconnectionCount
      */
     @CustomMetric(name = "reconnectionCount", kind = Metric.Kind.COUNTER,
-    		description = "The number of times the operator has tried reconnecting to the server since the last successful connection.")
+    	description = "The number of times the operator has tried reconnecting to the cluster since the last successful connection. "
+    	+ "If there are multiple nodes in the cluster, reconnecting to a different node in the cluster is not counted here. "
+    )
     public void setReconnectionCount(Metric reconnectionCount) {
     	this.reconnectionCount = reconnectionCount;
     }	
