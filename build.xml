@@ -13,7 +13,7 @@
   <fail unless="env.STREAMS_INSTALL" message="STREAMS_INSTALL not set."/>
   <property name="streams.install" value="${env.STREAMS_INSTALL}" />
   <property name="toolkit" location="com.ibm.streamsx.elasticsearch"/>
-  <property name="toolkit.test" location="tests"/>
+  <property name="toolkit.test" location="tests/fwtests"/>
   <property name="tmp" location="tmp" />
 	
 	
@@ -26,9 +26,14 @@
         <delete includeemptydirs="true">
           <fileset dir="${toolkit}" includes="doc/"/>
         </delete>
+        <delete includeemptydirs="true">
+          <fileset dir="${toolkit.test}" includes="scripts/"/>
+        </delete>
+        <exec executable="rm" failonerror="true" dir="${toolkit.test}">
+          <arg value="-rf" />
+          <arg value="workdir" />
+        </exec>  	
   	<ant dir="${toolkit}" target="clean"/>
-    <!-- TODO: Reactivate after tests have been created -->
-  	<!--ant dir="${toolkit.test}" target="clean"/-->
   </target>
 
   <target name="distclean" depends="clean" description="Clean all, inclusive maven downloads" >
@@ -75,10 +80,10 @@
   </target>
 
   <!-- Test targets -->
-  <target name="test" depends="build-all-samples">
-     <echo message="TODO: No tests have been created yet!"/>
-     <!-- TODO: Reactivate after tests have been created -->
-     <!--ant dir="${toolkit.test}" target="test"/-->
+  <target name="test" depends="toolkit">
+    <exec executable="./runTest.sh" failonerror="true" dir="${toolkit.test}">
+    	<arg value="--noprompt"/>
+    </exec>  	
   </target>
 
   <target name="indextoolkit">
