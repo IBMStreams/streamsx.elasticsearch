@@ -11,7 +11,7 @@ import java.util.ResourceBundle;
 public class Messages
 {
 	// the messages* files are searched in the directory of this class
-	private static final String BUNDLE_NAME = "com.ibm.streamsx.elasticsearch.i18n"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "com.ibm.streamsx.elasticsearch.i18n.messages.messages"; //$NON-NLS-1$#
 
 	// load the bundle based on the current locale
 	private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle.getBundle(BUNDLE_NAME);

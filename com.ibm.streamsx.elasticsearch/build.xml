@@ -23,12 +23,14 @@
 	<property name="jarfile" value="com.ibm.streamsx.elasticsearch.jar" />
 	<property name="test.run.dir" value="tests" />
 	<property name="test.build.dir" value="${test.run.dir}/bin" />
+	<property name="gensrc.dir" location="impl/java/src-gen" />
 	
     <target name="init">
         <mkdir dir="${build.dir}" />
         <mkdir dir="${lib.dir}" />
         <mkdir dir="${impl.lib.dir}" />
         <mkdir dir="${ext.downloads.dir}" />
+    	<mkdir dir="${gensrc.dir}" />
     </target>
 
 	<target name="clean">
@@ -43,6 +45,7 @@
 		<delete dir="output"/>
 		<delete dir="${test.run.dir}"/>
 		<delete dir="${test.build.dir}"/>
+		<delete dir="${gensrc.dir}" />
 	</target>
 
 	<target name="distclean" depends="clean">
@@ -83,13 +86,18 @@
 				<path refid="cp.streams" />
 				<path refid="cp.elasticsearch" />
 			</classpath>
+			<compilerarg line="-s ${gensrc.dir}"/>
 		</javac>
 	</target>
 
 	<target name="jar" depends="compile">
-		<jar destfile="${impl.lib.dir}/${jarfile}" basedir="${build.dir}" includes="com/ibm/streamsx/elasticsearch/**" filesonly="true"/>
+		<jar destfile="${impl.lib.dir}/${jarfile}" 
+			 basedir="${build.dir}"
+			 filesonly="true">
+			<fileset dir="${src.dir}" includes="com/ibm/streamsx/elasticsearch/i18n/messages/*.properties"/>
+		</jar>
 		<delete dir="${build.dir}" />
-	</target>
+	</target>	
 	
 	<!-- Downloads libraries using maven -->
 	<target name="maven-deps" depends="init,nomaven" if="env.M2_HOME">
