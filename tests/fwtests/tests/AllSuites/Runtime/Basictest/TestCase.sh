@@ -1,6 +1,7 @@
 # Submission test for Streams
 ##--variantList=''
 
+setCategory 'quick'
 PREPS='copyOnly splCompile'
 STEPS='submitJob checkJobNo waitForFin cancelJob Evaluate'
 FINS=(cancelJob 'es_dropIndex index1' 'es_dropIndex index2')

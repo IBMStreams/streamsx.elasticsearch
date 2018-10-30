@@ -45,9 +45,9 @@ clean: cleanjava
 	-rm -rf .toolkitList
 
 buildjava:
-	ant all
+	ant -buildfile buildjava.xml all
 
 cleanjava:
-	ant clean
+	ant -buildfile buildjava.xml clean
 
 
