@@ -1,0 +1,66 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  type 
+  	DataTuple = tuple <
+  		int32 id,
+  		rstring rmsg,
+  		int64 tstamp
+  	>;
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Beacon()                      
+    {                                                                      
+      param                                                                
+        iterations : 2u;
+        //period : 0.01;
+      output                                                               
+        Data:	
+        		id = (int32)IterationCount(),
+        		rmsg = "This is message number " + (rstring)IterationCount(),
+        		tstamp = 123456l + (int64)IterationCount();
+    }
+    
+    // no timestamps
+    () as Elasticsearch1 = ElasticsearchIndex(Data)
+	{
+		param
+			indexName : "idx1";
+	}
+
+	// timestamp from current time
+    () as Elasticsearch2 = ElasticsearchIndex(Data)
+	{
+		param
+			indexName : "idx2";
+			storeTimestamps : true;
+			timestampName : "currTime";
+	}
+
+	// timestamp from input attr
+    () as Elasticsearch3 = ElasticsearchIndex(Data)
+	{
+		param
+			indexName : "idx3";
+			storeTimestamps : true;
+			timestampName : "tupleTime" ;
+			timestampValueAttribute : tstamp ;
+	}
+
+    stream<DataTuple> DelayedData = Delay(Data)
+    {
+      param delay      : 5.0;
+            bufferSize : 250u;
+    }
+
+    () as TestStopSink = FileSink1(DelayedData) {}
+}

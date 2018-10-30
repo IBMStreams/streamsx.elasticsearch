@@ -1,0 +1,44 @@
+{
+  "took" : 11,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 2,
+    "max_score" : null,
+    "hits" : [
+      {
+        "_index" : "idx3",
+        "_type" : "_doc",
+        "_id" : "pvZfxGYB7wrkcG4aeR20",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 0",
+          "id" : 0,
+          "tupleTime" : "1970-01-01T01:02:03.456+0100"
+        },
+        "sort" : [
+          0
+        ]
+      },
+      {
+        "_index" : "idx3",
+        "_type" : "_doc",
+        "_id" : "qvZfxGYB7wrkcG4aex07",
+        "_score" : null,
+        "_source" : {
+          "rmsg" : "This is message number 1",
+          "id" : 1,
+          "tupleTime" : "1970-01-01T01:02:03.457+0100"
+        },
+        "sort" : [
+          1
+        ]
+      }
+    ]
+  }
+}
