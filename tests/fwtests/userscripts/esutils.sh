@@ -154,6 +154,28 @@ function es_dumpIndex {
 }
 export -f es_dumpIndex
 
+TTRO_help_es_maskIndexDocFields='
+# Function es_maskIndexDocFields
+#	Set the content of the given fields to a certain string, to simplify comparison of fields
+#   Use this for timestamp strings for example, which may differ from testrun to testrun
+#   $1 the name of the index, the same index file in the expected directory is also masked
+#   all remaining parameters are the field to mask'
+function es_maskIndexDocFields {
+	isDebug && printDebug "$FUNCNAME $*"
+
+	idxFile=${1}.dump
+	idxRefFile=expected/${1}.dump
+	
+	for f in "${@:2}"
+	do
+		perl -i -npe 's/^(\s*\"'$f'\"\s*:\s*\").*(\"\s*)$/$1XXX$2/' $idxFile
+		perl -i -npe 's/^(\s*\"'$f'\"\s*:\s*\").*(\"\s*)$/$1XXX$2/' $idxRefFile
+	done
+
+	return 0
+}
+export -f es_maskIndexDocFields
+
 TTRO_help_es_matchIndexDocFields='
 # Function es_matchIndexDocFields
 #   Match fields from an expected file against fields dumped from the index after a test.
