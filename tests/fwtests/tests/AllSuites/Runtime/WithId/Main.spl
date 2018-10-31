@@ -29,28 +29,39 @@ composite Main
         		id = (int32)IterationCount(),
         		rmsg = "This is message number " + (rstring)IterationCount();
     }
+
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
     
     
-    () as Elasticsearch1 = ElasticsearchIndex(Data)
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			indexName : "index1";
 			idNameAttribute : key;
-
+    	config placement : partitionColocation("X");			
 	}
 
-    () as Elasticsearch2 = ElasticsearchIndex(Data)
+    () as Elasticsearch2 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			indexName : "index2";
 			idName : "singleton";
+    	config placement : partitionColocation("X");			
 	}
-
-    stream<DataTuple> DelayedData = Delay(Data)
-    {
-      param delay      : 5.0;
-            bufferSize : 250u;
-    }
 
     () as TestStopSink = FileSink1(DelayedData) {}
 }

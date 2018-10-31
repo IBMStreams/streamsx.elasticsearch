@@ -29,38 +29,51 @@ composite Main
         		rmsg = "This is message number " + (rstring)IterationCount(),
         		tstamp = 123456l + (int64)IterationCount();
     }
+
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
     
     // no timestamps
-    () as Elasticsearch1 = ElasticsearchIndex(Data)
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			indexName : "idx1";
+		config placement : partitionColocation("X");
 	}
 
 	// timestamp from current time
-    () as Elasticsearch2 = ElasticsearchIndex(Data)
+    () as Elasticsearch2 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			indexName : "idx2";
 			storeTimestamps : true;
 			timestampName : "currTime";
+		config placement : partitionColocation("X");
 	}
 
 	// timestamp from input attr
-    () as Elasticsearch3 = ElasticsearchIndex(Data)
+    () as Elasticsearch3 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			indexName : "idx3";
 			storeTimestamps : true;
 			timestampName : "tupleTime" ;
 			timestampValueAttribute : tstamp ;
+		config placement : partitionColocation("X");			
 	}
-
-    stream<DataTuple> DelayedData = Delay(Data)
-    {
-      param delay      : 5.0;
-            bufferSize : 250u;
-    }
 
     () as TestStopSink = FileSink1(DelayedData) {}
 }

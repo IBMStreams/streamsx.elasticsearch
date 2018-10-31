@@ -43,30 +43,40 @@ composite Main
         		boolval = true;
     }
     
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
     
-    () as Elasticsearch1 = ElasticsearchIndex(Data)
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			nodeList : "localhost:9200" ;
 			indexName : "index1" ;
 			typeName : "type1" ;
+		config placement : partitionColocation("X");
 	}
 
-    () as Elasticsearch2 = ElasticsearchIndex(Data)
+    () as Elasticsearch2 = ElasticsearchIndex(DelayedData)
 	{
 		param
 			nodeList : "localhost:9200" ;
 			indexName : "index2" ;
 			typeName : "type1" ;
 			bulkSize : 2;
+		config placement : partitionColocation("X");
 	}
-
-    stream<DataTuple> DelayedData = Delay(Data)
-    {
-      param delay      : 5.0;
-            bufferSize : 250u;
-    }
-    
 
     () as TestStopSink = FileSink1(DelayedData) {}
 }
