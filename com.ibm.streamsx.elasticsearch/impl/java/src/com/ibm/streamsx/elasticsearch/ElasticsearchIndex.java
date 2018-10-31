@@ -306,9 +306,11 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	}
 
 	private void reset() {
+		logger.debug("--> RESET currentBulkSize=" + currentBulkSize);
 		// reset members
 		currentBulkSize = 0;
 		client.reset();
+		logger.debug("<-- RESET");
 	}	
 
 	@Override
@@ -325,7 +327,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	@Override
 	public void drain() throws Exception {
 		// StateHandler implementation
-		logger.debug("DRAIN currentBulkSize=" + currentBulkSize);
+		logger.debug("--> DRAIN currentBulkSize=" + currentBulkSize);
         long before = System.currentTimeMillis();
 
     	// send bulk if needed
@@ -335,7 +337,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 
         long after = System.currentTimeMillis();
         final long duration = after - before;
-        logger.debug("DRAIN took " + duration + " ms");	
+        logger.debug("<-- DRAIN took " + duration + " ms");	
 	}
 
 	@Override
