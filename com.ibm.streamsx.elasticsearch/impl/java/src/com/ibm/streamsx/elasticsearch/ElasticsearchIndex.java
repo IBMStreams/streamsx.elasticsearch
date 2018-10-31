@@ -42,7 +42,7 @@ import com.ibm.streamsx.elasticsearch.client.JESTClient;
 import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
 import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 
-@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription+ElasticsearchIndex.CR_DESC)
+@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription+ElasticsearchIndex.CR_DESC+ElasticsearchIndex.CR_EXAMPLES_DESC)
 @InputPorts({@InputPortSet(
 		id="0",
 		description=ElasticsearchIndex.iport0Description,
@@ -505,14 +505,45 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 			"\\nThe operator can participate in a consistent region. " +
 			"The operator can be part of a consistent region, but cannot be at the start of a consistent region.\\n" +
 			"\\nConsistent region supports that tuples are processed at least once.\\n" +
-			"\\nFailures during tuple processing or drain are handled by the operator and consistent region support:\\n" +
-			"* Consistent region replays tuples in case of failures\\n" +
-			"* Documents with same index name are overwritten\\n" +
-			"\\n" +
+			"\\nFailures during tuple processing or drain are handled by the operator and consistent region support.\\n" +
 			"\\nOn drain, the operator flushes its internal buffer and loads the documents to the Elasticsearch database.\\n" +
 			"\\n# Restrictions\\n"+
 			"\\nThe bulk size can not be configured when running in a consistent region. The parameter `bulkSize` is ignored and the bulk is submitted on drain."
-
 		   	;
-		
+
+	public static final String CR_EXAMPLES_DESC =
+			"\\n"+
+			"\\n+ Example for guaranteed processing with exactly-once semantics\\n"+
+			"\\nTo achieve exactly-once semantics with the ElasticsearchIndex operator:\\n" +
+			"* The operator must be part of a consistent region. In case of failures tuples are replayed by the source operator.\\n" +
+			"* In order to overwrite existing documents, ensure that the idNameAttribute parameter set, for an input stream attribute containing a unique key.\\n" +					
+			"\\n\\n"+
+			"\\nIn the sample below the ElasticsearchIndex operator reads Elasticsearch credentials from application configuration.\\n"+
+			"Ensure that application configuration with name \\\"es\\\" has been created with the properties nodeList, userName and password.\\n"+
+		    "\\n    composite Main {"+
+		    "\\n        param"+
+		    "\\n            expression<rstring> $indexName: getSubmissionTimeValue(\\\"indexName\\\", \\\"index-sample\\\");"+
+			"\\n    "+
+			"\\n        graph"+
+			"\\n    "+
+			"\\n            () as JCP = JobControlPlane() {}"+
+			"\\n    "+
+			"\\n            @consistent(trigger=periodic, period=5.0)"+
+			"\\n            stream<rstring key, uint64 dummy> Documents = Beacon() {"+
+			"\\n                param"+
+			"\\n                    period: 0.01;"+
+			"\\n                output"+
+			"\\n                    Documents : key = \\\"SAMPLE\\\"+(rstring) IterationCount();"+
+			"\\n            }"+
+			"\\n    "+
+			"\\n            () as ElasticsearchSink = ElasticsearchIndex(Documents) {"+
+			"\\n                param"+
+			"\\n                    indexName: $indexName;"+
+			"\\n                    idNameAttribute: key;"+
+			"\\n            }"+
+			"\\n    }"+	
+			"\\n"			
+			;	
+	
+	
 }
