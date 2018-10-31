@@ -21,19 +21,18 @@ bin/elasticsearch -d -p pid.txt
 
 # check health, retry for 20 seconds
 running="false"
-for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+for i in 5 10 15 20 25 30 35 40 45 50 55 60
 do
-#	echo try : $i 
+	sleep 5
 	status=`curl -s -S -X GET 'http://localhost:9200/_cluster/health?pretty' | grep -c green`
 	if [ "$status" == "1" ] ; then
 		running="true"
 		break
 	fi
-	sleep 1
 done
 
 if [ "$running" != "true" ] ; then
-	echo "es cluster is not healthy after $i seconds"
+	echo "es node is not healthy after $i seconds"
 	exit 1
 fi
 
