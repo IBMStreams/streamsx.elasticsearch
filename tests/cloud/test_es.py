@@ -57,7 +57,7 @@ class TestDistributed(unittest.TestCase):
         # check the count
         count = self._es.count(index=indexName, doc_type='_doc', body={ "query": {"match_all" : { }}})
         print("Count: "+str(count['count']))
-        assert (count['count'] >= expectedNum), "Missing tuples (expected="+str(expectedNum)+"): "+str(count['count'])        
+        assert (count['count'] == expectedNum), "Wrong tuple count (expected="+str(expectedNum)+"): "+str(count['count'])        
 
     # ------------------------------------
 

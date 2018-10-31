@@ -48,13 +48,14 @@ public composite TestConsistentRegionAppConfig (output DummyResult)
 		() as JCP = JobControlPlane() {}
 
 		@consistent(trigger=periodic, period=$drainPeriod)
-		stream<float32 counter> Documents = Beacon()
+		stream<rstring key, float32 counter> Documents = Beacon()
 		{
 			logic state : { mutable float32 i=0f; }
 			param
 				iterations : $numTuples;
 				period : 0.1;
 			output Documents:
+			    key = "docid_" + (rstring)IterationCount(),
 				counter = i++;
 		}
 
@@ -62,9 +63,10 @@ public composite TestConsistentRegionAppConfig (output DummyResult)
 		{
 			param
 				appConfigName: $appConfigName;
-				indexName : $indexName;
-				sslTrustStore : getThisToolkitDir()+"/etc/cacerts";
-				sslTrustStorePassword : "123456";
+				indexName: $indexName;
+				idNameAttribute: key;
+				sslTrustStore: getThisToolkitDir()+"/etc/cacerts";
+				sslTrustStorePassword: "123456";
 		}
 
 		stream<rstring result> DummyResult = Custom() {
