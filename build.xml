@@ -82,6 +82,7 @@
   <!-- Test targets -->
   <target name="test" depends="toolkit">
     <exec executable="./runTest.sh" failonerror="true" dir="${toolkit.test}">
+        <arg value="-s"/>
     	<arg value="--noprompt"/>
     </exec>  	
   </target>

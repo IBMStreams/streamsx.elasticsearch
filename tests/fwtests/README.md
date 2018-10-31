@@ -4,7 +4,7 @@
 
 ### Run all test suites with local Streams instance
 
-    ./runTest.sh
+    ./runTest.sh -s
 
 ### Run a single test case
 
