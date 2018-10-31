@@ -1,0 +1,81 @@
+//
+// ****************************************************************************
+// * Copyright (C) 2018, International Business Machines Corporation          *
+// * All rights reserved.                                                     *
+// ****************************************************************************
+//
+
+namespace com.ibm.streamsx.elasticsearch.test;
+use com.ibm.streamsx.elasticsearch::ElasticsearchIndex;
+
+/**
+ * In this sample SPL application the ElasticsearchIndex operator requires the connection settings given in application configuration.
+ * 
+ * For example, when connecting with SSL connection to the Compose for Elasticsearch database in the IBM cloud, an application configuration needs to be created with the properties and userName, password, nodeList, sslEnabled=true.
+ * You can extract these parameters from the connection string of the Compose For Elasticsearch IBM Cloud service.
+ * 
+ * If application configuration value is not present, then the parameter default values are used, like localhost:9200 (host:port) and sslEnabled=false;
+ * 
+ * @param indexName
+ * Optional parameter change the index name, default: index1
+ *
+  */
+public composite TestBulkMain
+{
+	param
+		expression<rstring> $appConfigName: getSubmissionTimeValue("appConfigName", "es");
+		expression<rstring> $indexName: getSubmissionTimeValue("indexName", "index1");
+	graph
+
+		stream<rstring result> ESTest = TestBulk() {
+			param
+				appConfigName: $appConfigName;
+				indexName: $indexName;
+		}
+}
+
+
+public composite TestBulk (output DummyResult)
+{
+	param
+		expression<rstring> $appConfigName: "es";
+		expression<rstring> $indexName: "test-index-1";
+		expression<int32>   $numTuples: 200;
+		expression<int32>   $bulkSize:  100;
+		
+	graph
+
+		stream<float32 counter> GenDocuments = Beacon()
+		{
+			logic state : { mutable float32 i=0f; }
+			param
+				iterations : $numTuples;
+				//period : 0.001;
+			output GenDocuments:
+				counter = i++;
+		}
+
+		(stream<I> Documents;
+		stream<rstring result> DummyResult) as CustomForwarder = Custom(GenDocuments as I)  {
+			logic
+			onTuple I: {
+				submit (I, Documents);			
+				submit ({result=""}, DummyResult);
+			}
+			config placement: partitionColocation("A");
+		}
+
+
+		() as ElasticsearchSink = ElasticsearchIndex(Documents)
+		{
+			param
+				appConfigName: $appConfigName;
+				indexName : $indexName;
+				sslTrustStore : getThisToolkitDir()+"/etc/cacerts";
+				sslTrustStorePassword : "123456";
+				bulkSize: $bulkSize;
+			config placement: partitionColocation("A");
+		}
+
+}
+
