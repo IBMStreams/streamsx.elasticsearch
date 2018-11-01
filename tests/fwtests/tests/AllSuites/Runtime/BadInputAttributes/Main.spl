@@ -1,0 +1,65 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  type 
+  	DataTuple = tuple <
+  		int32 id,
+  		rstring msg,
+  		//<List> list<int32> intlist
+  		//<Set> set<int32> intset
+  		//<Map> map<int32,int32> intmap
+  		//<Tuple> tuple<int32 x, rstring y> someTuple
+  	>;
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Custom()                      
+    {             
+    	logic
+    	onProcess :
+    	{
+    		mutable DataTuple d;
+	    	//<List> d = { id=1, msg="hi", intlist= [ 1,2,3,4,5 ] };
+	    	//<Set>  d = { id=1, msg="hi", intset= { 1,2,3,4,5 } };
+	    	//<Map>  d = { id=1, msg="hi", intmap= { 1:2 , 2:4 , 3:6 , 4:8 , 5:10 } };
+	    	//<Tuple>  d = { id=1, msg="hi", someTuple= { x=1, y="hi" } };
+    		submit( d , Data);
+    		submit(Sys.WindowMarker, Data);
+    		submit(Sys.FinalMarker, Data);
+    	}                                                         
+    }
+
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
+    
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
+	{
+		param
+			nodeList : "localhost:9200" ;
+			indexName : "index1" ;
+		config placement : partitionColocation("X");
+	}
+
+    () as TestStopSink = FileSink1(DelayedData) {}
+}

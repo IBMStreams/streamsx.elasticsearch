@@ -16,12 +16,14 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import com.ibm.json.java.JSONObject;
+import com.ibm.streams.operator.Attribute;
 import com.ibm.streams.operator.OperatorContext;
 import com.ibm.streams.operator.StreamSchema;
 import com.ibm.streams.operator.StreamingInput;
 import com.ibm.streams.operator.Tuple;
 import com.ibm.streams.operator.TupleAttribute;
 import com.ibm.streams.operator.Type;
+import com.ibm.streams.operator.Type.MetaType;
 import com.ibm.streams.operator.OperatorContext.ContextCheck;
 import com.ibm.streams.operator.StreamingData.Punctuation;
 import com.ibm.streams.operator.compile.OperatorContextChecker;
@@ -39,6 +41,7 @@ import com.ibm.streams.operator.model.PrimitiveOperator;
 import com.ibm.streamsx.elasticsearch.client.Client;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.client.JESTClient;
+import com.ibm.streamsx.elasticsearch.i18n.Messages;
 import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
 import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 
@@ -365,6 +368,37 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     public static void compiletimeChecker(OperatorContextChecker checker) {
 		StreamsHelper.checkCheckpointConfig(checker, "ElasticsearchIndex");
 		StreamsHelper.checkConsistentRegion(checker, "ElasticsearchIndex");
+	}    
+
+	@ContextCheck(compile = false, runtime = true)
+    public static void runtimeChecker(OperatorContextChecker checker) {
+		
+		// check attribute types in input port 0
+		OperatorContext ctx = checker.getOperatorContext();
+		StreamSchema schema = ctx.getStreamingInputs().get(0).getStreamSchema();
+		
+		Set<String> attributeNames = schema.getAttributeNames();
+		for (String attrName : attributeNames) {
+			MetaType attrType = schema.getAttribute(attrName).getType().getMetaType();
+			if (!(
+					attrType == MetaType.BOOLEAN ||
+					attrType == MetaType.FLOAT32 ||
+					attrType == MetaType.FLOAT64 ||
+					attrType == MetaType.INT16   ||
+					attrType == MetaType.INT32   ||
+					attrType == MetaType.INT64   ||
+					attrType == MetaType.INT8    ||
+					attrType == MetaType.RSTRING ||
+					attrType == MetaType.USTRING ||
+					attrType == MetaType.UINT16  ||
+					attrType == MetaType.UINT32  ||
+					attrType == MetaType.UINT64  ||
+					attrType == MetaType.UINT8   ||
+					attrType == MetaType.BSTRING
+				)) {
+				checker.setInvalidContext(Messages.getString("ELASTICSEARCH_UNSUPPORTED_ATTR_TYPE", attrName, attrType.toString()), null );
+			}
+		}
 	}    
  
     // metrics ----------------------------------------------------------------------------------------------------------------

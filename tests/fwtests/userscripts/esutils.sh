@@ -243,5 +243,16 @@ function es_dropIndex {
 }
 export -f es_dropIndex
 
+TTRO_help_es_runStandalone='
+# Function es_runStandalone
+#	Run the application as standalone
+#   invokes output/bin/standalone and redirects stdout and stderr to standalone.log'
+function es_runStandalone {
+	isDebug && printDebug "$FUNCNAME $*"
 
+	executeLogAndError ./output/bin/standalone
+	mv $TT_evaluationFile standalone.log
+	return 0
+}
+export -f es_runStandalone
 
