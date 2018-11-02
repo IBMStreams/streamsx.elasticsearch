@@ -54,7 +54,6 @@ public class Configuration
 	}
 	
 	public void addNode(String host, String port) {
-		// TODO validate format here
 		nodeList.add(host + ":" + port);
 	}
 	

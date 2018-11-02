@@ -12,7 +12,7 @@ composite Main
   type 
   	DataTuple = tuple <
   		int32 id,
-  		rstring idx
+  		rstring msg
   	>;
   
   graph
@@ -22,8 +22,6 @@ composite Main
     	logic
     	onProcess :
     	{
-    		submit( { id=1, idx="index1" } , Data);
-    		submit( { id=1, idx="index2" } , Data);
     		submit(Sys.WindowMarker, Data);
     		submit(Sys.FinalMarker, Data);
     	}                                                         
@@ -48,7 +46,15 @@ composite Main
     () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
 	{
 		param
-			indexNameAttribute : idx ;
+			indexName : "index1" ;
+//<ERR1>	hostPort : -1 ;
+//<ERR2>	nodeList : "aaa:bbb:ccc" ;
+//<ERR3>	nodeList : "aaa:bbb" ;			
+//<ERR4>	reconnectionPolicyCount : -2 ;
+//<ERR5>	readTimeout : -3 ;
+//<ERR6>	connectionTimeout : -1 ;
+//<ERR7>	maxConnectionIdleTime : -1l ;
+			
 		config placement : partitionColocation("X");
 	}
 

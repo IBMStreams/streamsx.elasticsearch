@@ -21,6 +21,8 @@ import com.ibm.streams.operator.model.Libraries;
 import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
+import com.ibm.streamsx.elasticsearch.i18n.Messages;
+import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
 
 /**
  * This class should be used as parent for all ES operators
@@ -127,18 +129,27 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 			}
 			if (null == hostname) hostname="localhost";
 			if (hostport.equals("0")) hostport="9200";
+			
+			if (!StreamsHelper.isPositiveInteger(hostport)) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "hostPort", hostport));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
 			cfg.addNode(hostname,hostport);
 		} else if (null != nodeslist) {
 			String[] nodes = nodeslist.split(",");
 			for (String n: nodes) {
 				String[] vals = n.split(":");
 				if (vals.length == 2) {
+					if (!StreamsHelper.isPositiveInteger(vals[1])) {
+						logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "nodeList", nodeslist));
+						throw new RuntimeException("Parameter contains invalid value");
+					}
 					cfg.addNode(vals[0],vals[1]);
 				} else if (vals.length == 1) {
 					cfg.addNode(vals[0],"9200");
 				} else {
-					logger.error("Parameter nodeList contains invalid entries : " + nodeslist.toString());
-					throw new RuntimeException("Parameter nodeList contains invalid entries");
+					logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "nodeList", nodeslist));
+					throw new RuntimeException("Parameter contains invalid value");
 				}
 			}
 		} else {	// none of the 3 parameters nodeList,hostName,hostPort are set, so default to localhost:9200
@@ -158,8 +169,17 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 		}
 
 		if (null != appConfig.get("reconnectionPolicyCount")) {
-			cfg.setReconnectionPolicyCount(Integer.parseInt(appConfig.get("reconnectionPolicyCount")));
+			String str = appConfig.get("reconnectionPolicyCount");
+			if (!StreamsHelper.isPositiveInteger(str)) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "reconnectionPolicyCount", str));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
+			cfg.setReconnectionPolicyCount(Integer.parseInt(str));
 		} else {
+			if (reconnectionPolicyCount < 0) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "reconnectionPolicyCount", Integer.toString(reconnectionPolicyCount)));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
 			cfg.setReconnectionPolicyCount(reconnectionPolicyCount);
 		}
 
@@ -210,20 +230,47 @@ public class AbstractElasticsearchOperator extends AbstractOperator
 		}
 		
 		if (null != appConfig.get("readTimeout")) {
-			cfg.setReadTimeout(Integer.parseInt(appConfig.get("readTimeout")));
+			String str = appConfig.get("readTimeout");
+			if (!StreamsHelper.isPositiveInteger(str)) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "readTimeout", str));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
+			cfg.setReadTimeout(Integer.parseInt(str));
 		} else {
+			if (readTimeout < 0) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "readTimeout", Integer.toString(readTimeout)));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
 			cfg.setReadTimeout(readTimeout);
 		}
 
 		if (null != appConfig.get("connectionTimeout")) {
-			cfg.setConnectionTimeout(Integer.parseInt(appConfig.get("connectionTimeout")));
+			String str = appConfig.get("connectionTimeout");
+			if (!StreamsHelper.isPositiveInteger(str)) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "connectionTimeout", str));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
+			cfg.setConnectionTimeout(Integer.parseInt(str));
 		} else {
+			if (connectionTimeout < 0) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "connectionTimeout", Integer.toString(connectionTimeout)));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
 			cfg.setConnectionTimeout(connectionTimeout);
 		}
 
 		if (null != appConfig.get("maxConnectionIdleTime")) {
-			cfg.setMaxConnectionIdleTime(Long.parseLong(appConfig.get("maxConnectionIdleTime")));
+			String str = appConfig.get("maxConnectionIdleTime");
+			if (!StreamsHelper.isPositiveInteger(str)) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "maxConnectionIdleTime", str));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
+			cfg.setMaxConnectionIdleTime(Long.parseLong(str));
 		} else {
+			if (maxConnectionIdleTime < 0) {
+				logger.error(Messages.getString("ELASTICSEARCH_INVALID_PARAMETER_VALUE", "maxConnectionIdleTime", Long.toString(maxConnectionIdleTime)));
+				throw new RuntimeException("Parameter contains invalid value");
+			}
 			cfg.setMaxConnectionIdleTime(maxConnectionIdleTime);
 		}
 		

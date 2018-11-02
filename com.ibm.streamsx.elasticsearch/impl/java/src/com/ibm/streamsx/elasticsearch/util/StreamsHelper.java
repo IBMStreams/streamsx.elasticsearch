@@ -133,5 +133,17 @@ public class StreamsHelper {
 			}
 		}		
 	}
-	
+
+	public static boolean isPositiveInteger(String str) {
+		int d;
+	    try {
+			d = Integer.parseInt(str);
+	    } catch (NumberFormatException | NullPointerException nfe) {
+	        return false;
+	    }
+	    if (d < 0) {
+	    	return false;
+	    }
+	    return true;
+	}	
 }
