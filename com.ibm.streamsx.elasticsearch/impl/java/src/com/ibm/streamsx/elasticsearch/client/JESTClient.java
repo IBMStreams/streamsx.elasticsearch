@@ -247,7 +247,6 @@ public class JESTClient implements Client {
 			} catch (CouldNotConnectException e) {
 				logger.error("Connect error. Cannot send request to server. Exception : " + e.getMessage());
 			} catch (IOException e) {
-				// TODO : read timeout can happen here , add parameter to specify readTimeout ?
 				logger.error("IO error. Cannot send request to server. Exception : " + e.getMessage());
 				e.printStackTrace();
 			}
@@ -271,7 +270,6 @@ public class JESTClient implements Client {
 						logger.error("Attempt: " + Integer.toString(attempts) + " failed, retrying with wait, reconnect: " + Integer.toString(reconnects) + " ...");
 						retry = true;
 						try {
-							// TODO : add parameter to specify sleep interval here ?
 							Thread.sleep(1000);
 						} catch (InterruptedException e) {
 							logger.warn("Thread.sleep interrupted");
@@ -283,9 +281,9 @@ public class JESTClient implements Client {
 				}
 			}
 		}
-		nodesFailed = Math.min((attempts-1),numberOfNodes);
 		
 		if (logger.isDebugEnabled()) {
+			nodesFailed = Math.min((attempts-1),numberOfNodes);
 			logger.debug("Nodes failed: " + Integer.toString(nodesFailed));
 		}
 		return response;

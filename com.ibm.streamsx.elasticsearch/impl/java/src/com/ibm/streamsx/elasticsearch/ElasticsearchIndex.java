@@ -16,34 +16,33 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import com.ibm.json.java.JSONObject;
-import com.ibm.streams.operator.Attribute;
 import com.ibm.streams.operator.OperatorContext;
+import com.ibm.streams.operator.OperatorContext.ContextCheck;
 import com.ibm.streams.operator.StreamSchema;
+import com.ibm.streams.operator.StreamingData.Punctuation;
 import com.ibm.streams.operator.StreamingInput;
 import com.ibm.streams.operator.Tuple;
 import com.ibm.streams.operator.TupleAttribute;
 import com.ibm.streams.operator.Type;
 import com.ibm.streams.operator.Type.MetaType;
-import com.ibm.streams.operator.OperatorContext.ContextCheck;
-import com.ibm.streams.operator.StreamingData.Punctuation;
 import com.ibm.streams.operator.compile.OperatorContextChecker;
 import com.ibm.streams.operator.metrics.Metric;
 import com.ibm.streams.operator.model.CustomMetric;
 import com.ibm.streams.operator.model.InputPortSet;
 import com.ibm.streams.operator.model.InputPortSet.WindowMode;
 import com.ibm.streams.operator.model.InputPortSet.WindowPunctuationInputMode;
-import com.ibm.streams.operator.state.Checkpoint;
-import com.ibm.streams.operator.state.ConsistentRegionContext;
-import com.ibm.streams.operator.state.StateHandler;
 import com.ibm.streams.operator.model.InputPorts;
 import com.ibm.streams.operator.model.Parameter;
 import com.ibm.streams.operator.model.PrimitiveOperator;
+import com.ibm.streams.operator.state.Checkpoint;
+import com.ibm.streams.operator.state.ConsistentRegionContext;
+import com.ibm.streams.operator.state.StateHandler;
 import com.ibm.streamsx.elasticsearch.client.Client;
+import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 import com.ibm.streamsx.elasticsearch.client.Configuration;
 import com.ibm.streamsx.elasticsearch.client.JESTClient;
 import com.ibm.streamsx.elasticsearch.i18n.Messages;
 import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
-import com.ibm.streamsx.elasticsearch.client.ClientMetrics;
 
 @PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription+ElasticsearchIndex.CR_DESC+ElasticsearchIndex.CR_EXAMPLES_DESC)
 @InputPorts({@InputPortSet(
@@ -180,6 +179,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     	String idToInsert = getId(tuple);
     	
     	if (indexToInsert == null) {
+    		// TODO log error here instead of throwing
     		throw new Exception("Index must be defined.");
     	}
 

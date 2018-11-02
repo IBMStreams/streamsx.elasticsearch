@@ -7,9 +7,6 @@
 
 package com.ibm.streamsx.elasticsearch.client;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Data structure to hold client status metrics
  */

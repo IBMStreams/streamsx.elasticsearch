@@ -294,6 +294,7 @@ public class AbstractElasticsearchOperator extends AbstractOperator
     @Parameter(name="reconnectionPolicyCount", optional=true,
 		description="Specifies the number of reconnection attemps to th Elasticsearch server, upon disconnection. "
 	    + "If more than one node is specified in the 'nodeList' parameter, all remaining nodes are tried immediately, before the reconnection count starts. "
+		+ "If no node responds, the operator will wait for one second and try to reconnect to a node. During reconnection, nodes are tried in a round robin fashion."
 		+ "This parameter can be overwritten by the application configuration. "
 	)
 	public void setReconnectionPolicyCount(int reconnectionPolicyCount) {
