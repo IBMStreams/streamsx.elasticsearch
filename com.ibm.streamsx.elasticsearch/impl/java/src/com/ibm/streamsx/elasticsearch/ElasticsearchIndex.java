@@ -178,9 +178,9 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     	String typeToInsert = getType(tuple);
     	String idToInsert = getId(tuple);
     	
-    	if (indexToInsert == null) {
-    		// TODO log error here instead of throwing
-    		throw new Exception("Index must be defined.");
+    	if (indexToInsert == null || indexToInsert.equals("")) {
+    		logger.error(Messages.getString("ELASTICSEARCH_UNKNOWN_INDEX"));
+    		return;
     	}
 
     	// Add document to bulk
@@ -226,7 +226,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     @Override
     public synchronized void shutdown() throws Exception {
         OperatorContext context = getOperatorContext();
-        Logger.getLogger(this.getClass()).trace("Operator " + context.getName() + " shutting down in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId() );
+        logger.trace("Operator " + context.getName() + " shutting down in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId() );
         // shutdown client
         client.close();
         super.shutdown();

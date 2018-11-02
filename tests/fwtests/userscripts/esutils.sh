@@ -250,7 +250,12 @@ TTRO_help_es_runStandalone='
 function es_runStandalone {
 	isDebug && printDebug "$FUNCNAME $*"
 
-	executeLogAndError ./output/bin/standalone
+	# create data dir, if not present. it is needed by the testfilesink
+	if [ ! -d data ] ; then
+		mkdir data
+	fi
+	executeAndLog ./output/bin/standalone
+	echo resultcode: $TTTT_result
 	mv $TT_evaluationFile standalone.log
 	return 0
 }

@@ -1,0 +1,28 @@
+{
+  "took" : 148,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 1,
+    "max_score" : null,
+    "hits" : [
+      {
+        "_index" : "index1",
+        "_type" : "_doc",
+        "_id" : "BA0r1WYBNObxgSfwFWxt",
+        "_score" : null,
+        "_source" : {
+          "id" : 1
+        },
+        "sort" : [
+          1
+        ]
+      }
+    ]
+  }
+}
