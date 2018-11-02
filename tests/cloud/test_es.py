@@ -19,11 +19,15 @@ class TestDistributed(unittest.TestCase):
         # ES client expects ES_URL environment variable with URL to Compose Elasticsearch service, e.g. https://user:password@portalxxx.composedb.com:port/
         es_url = os.environ['ES_URL']
         self._es = Elasticsearch([es_url],verify_certs=True)
+        self._indexName = 'test-index-cloud'
 
     def setUp(self):
         Tester.setup_distributed(self)
         self.elasticsearch_toolkit_location = "../../com.ibm.streamsx.elasticsearch"
         self.isCloudTest = False
+
+    def tearDown(self):
+        self._es.indices.delete(index=self._indexName, ignore=[400, 404])
 
     def _add_toolkits(self, topo, test_toolkit):
         tk.add_toolkit(topo, test_toolkit)
@@ -64,26 +68,26 @@ class TestDistributed(unittest.TestCase):
     # CONSISTENT REGION test with TopologyTester:
     # Resets triggered by ConsistentRegionResetter and Beacon re-submits the tuples
     def test_consistent_region_with_resets(self):
-        indexName = 'test-index-cr'
+        self._indexName = 'test-index-cr'
         # delete index before launching Streams job
-        self._es.indices.delete(index=indexName, ignore=[400, 404]) 
+        self._es.indices.delete(index=self._indexName, ignore=[400, 404]) 
         numResets = 3
         runFor = 150
         numTuples = 300 # num generated tuples
         drainPeriod = 5.0
-        self._build_launch_app("test_consistent_region_with_resets", "com.ibm.streamsx.elasticsearch.test::TestConsistentRegionAppConfig", {'indexName':indexName, 'drainPeriod':drainPeriod, 'numTuples':numTuples}, numTuples, 'es_test', False, runFor, numResets)
-        self._validate_count(indexName, numTuples);
+        self._build_launch_app("test_consistent_region_with_resets", "com.ibm.streamsx.elasticsearch.test::TestConsistentRegionAppConfig", {'indexName':self._indexName, 'drainPeriod':drainPeriod, 'numTuples':numTuples}, numTuples, 'es_test', False, runFor, numResets)
+        self._validate_count(self._indexName, numTuples);
   
     # ------------------------------------
 
     def test_bulk(self):
-        indexName = 'test-index-bulk'
+        self._indexName = 'test-index-bulk'
         # delete index before launching Streams job
-        self._es.indices.delete(index=indexName, ignore=[400, 404]) 
+        self._es.indices.delete(index=self._indexName, ignore=[400, 404]) 
         numTuples = 20000 # num generated tuples
         bulkSize = 1000
-        self._build_launch_app("test_consistent_region_with_resets", "com.ibm.streamsx.elasticsearch.test::TestBulk", {'indexName':indexName, 'numTuples':numTuples, 'bulkSize':bulkSize}, numTuples, 'es_test')
-        self._validate_count(indexName, numTuples);
+        self._build_launch_app("test_consistent_region_with_resets", "com.ibm.streamsx.elasticsearch.test::TestBulk", {'indexName':self._indexName, 'numTuples':numTuples, 'bulkSize':bulkSize}, numTuples, 'es_test')
+        self._validate_count(self._indexName, numTuples);
 
     # ------------------------------------
 
