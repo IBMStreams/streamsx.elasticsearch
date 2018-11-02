@@ -1,17 +1,22 @@
 # streamsx.elasticsearch
 
-Toolkit for sending tuple data from Streams applications to Elasticsearch. Contains 2 operators:
+Toolkit for sending tuple data from Streams applications to Elasticsearch.
 
-- `ElasticsearchIndex`: Uses the Elasticsearch Java API's [Transport Client](https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html) to send data to Elasticsearch.
-- `ElasticsearchRestIndex`: Uses [Jest](https://github.com/searchbox-io/Jest), a Java HTTP Rest client, to send data to Elasticsearch.
+- `ElasticsearchIndex` operator: Uses [Jest](https://github.com/searchbox-io/Jest), a Java HTTP Rest client, to send data to Elasticsearch.
 
-Both operators perform the same functions - just through different clients/methods. Read more about the different clients [here](https://www.elastic.co/blog/found-interfacing-elasticsearch-picking-client).
+## Documentation
+
+Find the SPLDOC documentation [here](https://ibmstreams.github.io/streamsx.elasticsearch/doc/spldoc/html/).
+
+## IBM Cloud
+
+This toolkit is compatible with the [Streaming Analytics](https://www.ibm.com/cloud/streaming-analytics) service and [Compose for Elasticsearch](https://www.ibm.com/cloud/compose/elasticsearch) service on IBM Cloud.
 
 ### Get Started
 
 1.  Clone the repository.
-2.  `cd com.ibm.streamsx.elasticsearch`
-3.  Run `ant all` to build toolkit.
+2.  Run `ant all` to build toolkit.
+3.  Run `ant build-all-samples` to build the samples.
 
 ### To develop in Studio:
 
@@ -24,23 +29,6 @@ Both operators perform the same functions - just through different clients/metho
 
 ### Install Elasticsearch
 
-Refer to official [Download and Installation Steps](https://www.elastic.co/downloads/elasticsearch).
+Refer to official [Download and Installation Steps](https://www.elastic.co/downloads/elasticsearch)
+or create a [Compose for Elasticsearch](https://console.bluemix.net/docs/services/ComposeForElasticsearch/index.html) IBM Cloud service.
 
-#### Install Elasticsearch Mapper Size Plugin
-The mapper size plugin enables the Elasticsearch(Rest)Index to query and store the size of documents indexed. The size metrics will only display once this plugin is installed and the `sizeMetricsEnabled` is set to true in the operator's parameters.
-
-### SPLDOC documentation
-
-You can generate HTML from the SPLDOC with the following commands:
-
-```
-spl-make-toolkit -i com.ibm.streamsx.elasticsearch
-spl-make-doc -i com.ibm.streamsx.elasticsearch
-```
-
-You can view the HTML pages with any browser, or, for example, the following
-command:
-
-```
-firefox com.ibm.streamsx.elasticsearch/doc/spldoc/html/index.html &
-```
