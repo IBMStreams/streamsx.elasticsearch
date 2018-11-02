@@ -1,4 +1,4 @@
-# streamsx.objectstorage tests
+# streamsx.elasticsearch tests
 
 ## Before launching the test
 
