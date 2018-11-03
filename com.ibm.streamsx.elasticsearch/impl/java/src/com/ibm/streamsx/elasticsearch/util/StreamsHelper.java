@@ -39,8 +39,9 @@ public class StreamsHelper {
 				return;
 			}
 			
-			// TODO : parse attribute name from a string like : iport$0.get_observationx()
+			// IMPROVEMENT : parse attribute name from a string like : iport$0.get_observationx()
 			// where observationx is the actual name 
+			@SuppressWarnings("unused")
 			String attrSpec = ctx.getParameterValues(attributeParameter).get(0);
 			String attrName = "";
 			

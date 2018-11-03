@@ -79,12 +79,27 @@ public class JESTClient implements Client {
 		this.logger = logger;
 	}
 
+	// validate the configuration, if something is wrong log error and return false
+	// if false is returned, the caller should assume this as an unrecoverable error and stop execution
 	@Override
 	public boolean validateConfiguration() {
-		// TODO implement config validation
+
+		// verify at least one node is specified
+		if (cfg.getNodeList().size() < 1) {
+			logger.error("Config error: no valid node specified");
+			return false;
+		}
+		
+		// if useranme is given , password must also be specified
+		if (cfg.getUserName() != null && cfg.getPassword() == null) {
+			logger.error("Config error: userName for HTTP basic authentication is specified, but no password is set.");
+			return false;
+		}
 		return true;
 	}
 
+	// initialize the client, if something goes wrong log error and return false
+	// if false is returned the caller should assume this as an unrecoverable error and stop execution
 	@Override
 	public boolean init() throws Exception {
 
@@ -101,7 +116,6 @@ public class JESTClient implements Client {
         }
 	    
 		// use ssl 
-	    // TODO add error checking and logging here 
 		if (cfg.isSslEnabled()) {
 
 			// in case we are running on an IBM Java, where TLSv1.2 is not enabled per default, set this property
@@ -127,38 +141,36 @@ public class JESTClient implements Client {
 						}
 					}).build();
 				} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
-					// TODO Auto-generated catch block
+					logger.error("Init error: cannot build SSLContext with trustAllCertificates option, see stack trace for details");
 					e.printStackTrace();
-					throw e;
+					return false;
 				}
 			} else if (cfg.getSslTrustStore() != null) {
 				File trustFile = new File(cfg.getSslTrustStore());
 				if (cfg.getSslTrustStorePassword() != null) {
 					try {
 						sslContext = new SSLContextBuilder().loadTrustMaterial(trustFile,cfg.getSslTrustStorePassword().toCharArray()).build();
-					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException
-							| CertificateException | IOException e) {
-						// TODO Auto-generated catch block
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
+						logger.error("Init error: cannot build SSLContext with truststore and truststore password, see stack trace for details");
 						e.printStackTrace();
-						throw e;
+						return false;
 					}
 				} else {
 					try {
 						sslContext = new SSLContextBuilder().loadTrustMaterial(trustFile).build();
-					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException
-							| CertificateException | IOException e) {
-						// TODO Auto-generated catch block
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
+						logger.error("Init error: cannot build SSLContext with truststore (no passwd), see stack trace for details");
 						e.printStackTrace();
-						throw e;
+						return false;
 					}
 				}
 			} else {
 				try {
 					sslContext = SSLContext.getDefault();
 				} catch (NoSuchAlgorithmException e) {
-					// TODO Auto-generated catch block
+					logger.error("Init error: cannot build default SSLContext, see stack trace for details");
 					e.printStackTrace();
-					throw e;
+					return false;
 				}
 			}
 			
@@ -189,9 +201,12 @@ public class JESTClient implements Client {
 		}
         
         client = factory.getObject();
-        
         clientMetrics.setIsConnected(true);
 
+        if (null == client) {
+        	logger.error("Init error: unknown problem, client is 'null'");
+        	return false;
+        }
         return true;
 	}
 

@@ -48,11 +48,6 @@ public class Configuration
 		return new Configuration();
 	}
 
-	// TODO add config validation here 
-	public boolean validate() {
-		return true;
-	}
-	
 	public void addNode(String host, String port) {
 		nodeList.add(host + ":" + port);
 	}
@@ -205,7 +200,7 @@ public class Configuration
 	public void setMaxConnectionIdleTime(long maxConnectionIdleTime) {
 		this.maxConnectionIdleTime = maxConnectionIdleTime;
 	}
-
+	
 	@Override
 	public String toString() {
 		return "Configuration [reconnectionPolicyCount=" + reconnectionPolicyCount + ", nodeList=" + nodeList

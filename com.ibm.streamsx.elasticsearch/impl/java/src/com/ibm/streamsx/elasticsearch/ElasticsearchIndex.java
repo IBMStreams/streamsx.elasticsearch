@@ -104,17 +104,29 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 		super.initialize(context);
         logger.trace("Operator " + context.getName() + " initializing in PE: " + context.getPE().getPEId() + " in Job: " + context.getPE().getJobId());
  
+        // get CR context
         crContext = context.getOptionalContext(ConsistentRegionContext.class);
-        // Construct a new client config object
+        
+        // Construct new client config and metrics objects
         config = getClientConfiguration();
         logger.info(config.toString());
-       
         clientMetrics = ClientMetrics.getClientMetrics();
+
         // create client 
-        // TODO add robust error checking here
         client = new JESTClient(config, clientMetrics);
         client.setLogger(logger);
-        client.init();
+        
+        // validate configuration, if this fails we stop the operator
+        if (!client.validateConfiguration()) {
+        	logger.error(Messages.getString("ELASTICSEARCH_INVALID_CONFIG"));
+        	throw new RuntimeException("Client configuration is invalid");
+        }
+        	
+        // initialize client, if this fails we stop the operator
+        if (!client.init()) {
+        	logger.error(Messages.getString("ELASTICSEARCH_INIT_FAILED"));
+        	throw new RuntimeException("Client initialization failed");
+        }
         
         updateMetrics(clientMetrics);
 	}
