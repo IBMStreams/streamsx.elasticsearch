@@ -1,0 +1,100 @@
+{
+  "took" : 22,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 4,
+    "max_score" : null,
+    "hits" : [
+      {
+        "_index" : "index2",
+        "_type" : "type1",
+        "_id" : "7p2au2YBRbDcU8uaJPlb",
+        "_score" : null,
+        "_source" : {
+          "uint32val" : 0,
+          "int32val" : 0,
+          "float64val" : 0.0,
+          "int64val" : 0,
+          "rmsg" : "This is message number 0",
+          "umsg" : "This is message number 0",
+          "id" : 0,
+          "float32val" : 0.0,
+          "boolval" : true,
+          "uint64val" : 0
+        },
+        "sort" : [
+          0
+        ]
+      },
+      {
+        "_index" : "index2",
+        "_type" : "type1",
+        "_id" : "752au2YBRbDcU8uaJPlb",
+        "_score" : null,
+        "_source" : {
+          "uint32val" : 1,
+          "int32val" : 1,
+          "float64val" : 1.0,
+          "int64val" : 1,
+          "rmsg" : "This is message number 1",
+          "umsg" : "This is message number 1",
+          "id" : 1,
+          "float32val" : 1.0,
+          "boolval" : true,
+          "uint64val" : 1
+        },
+        "sort" : [
+          1
+        ]
+      },
+      {
+        "_index" : "index2",
+        "_type" : "type1",
+        "_id" : "8p2au2YBRbDcU8uaJfnN",
+        "_score" : null,
+        "_source" : {
+          "uint32val" : 2,
+          "int32val" : 2,
+          "float64val" : 2.0,
+          "int64val" : 2,
+          "rmsg" : "This is message number 2",
+          "umsg" : "This is message number 2",
+          "id" : 2,
+          "float32val" : 2.0,
+          "boolval" : true,
+          "uint64val" : 2
+        },
+        "sort" : [
+          2
+        ]
+      },
+      {
+        "_index" : "index2",
+        "_type" : "type1",
+        "_id" : "852au2YBRbDcU8uaJfnN",
+        "_score" : null,
+        "_source" : {
+          "uint32val" : 3,
+          "int32val" : 3,
+          "float64val" : 3.0,
+          "int64val" : 3,
+          "rmsg" : "This is message number 3",
+          "umsg" : "This is message number 3",
+          "id" : 3,
+          "float32val" : 3.0,
+          "boolval" : true,
+          "uint64val" : 3
+        },
+        "sort" : [
+          3
+        ]
+      }
+    ]
+  }
+}

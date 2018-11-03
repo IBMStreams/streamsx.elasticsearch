@@ -1,0 +1,10 @@
+# environment for running the ES cluster
+
+# set JAVA environment, must be 1.8, patchlevel greater than 131
+export JAVA_HOME=/usr/lib/jvm/jre-1.8.0-ibm.x86_64
+
+# set ES version
+export ELA_VERSION=6.2.2
+#export ELA_VERSION=5.5.3
+
+

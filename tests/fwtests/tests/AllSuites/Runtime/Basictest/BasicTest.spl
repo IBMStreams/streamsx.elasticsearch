@@ -1,0 +1,82 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  type 
+  	DataTuple = tuple <
+  		int32 id,
+  		rstring rmsg,
+  		ustring umsg,
+  		int32 int32val,
+  		int64 int64val,
+  		uint32 uint32val,
+  		uint64 uint64val,
+  		float32 float32val,
+  		float64 float64val,
+  		boolean boolval
+  	>;
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Beacon()                      
+    {                                                                      
+      param                                                                
+        iterations : 4u;
+        period : 0.01;
+      output                                                               
+        Data:	id = (int32)IterationCount(),
+        		rmsg = "This is message number " + (rstring)IterationCount(),
+        		umsg = (ustring)"This is message number " + (ustring)IterationCount(),
+        		int32val = (int32)IterationCount(),
+        		int64val = (int64)IterationCount(),
+        		uint32val = (uint32)IterationCount(),
+        		uint64val = (uint64)IterationCount(),
+        		float32val = (float32)IterationCount(),
+        		float64val = (float64)IterationCount(),
+        		boolval = true;
+    }
+    
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
+    
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
+	{
+		param
+			nodeList : "localhost:9200" ;
+			indexName : "index1" ;
+			typeName : "type1" ;
+		config placement : partitionColocation("X");
+	}
+
+    () as Elasticsearch2 = ElasticsearchIndex(DelayedData)
+	{
+		param
+			nodeList : "localhost:9200" ;
+			indexName : "index2" ;
+			typeName : "type1" ;
+			bulkSize : 2;
+		config placement : partitionColocation("X");
+	}
+
+    () as TestStopSink = FileSink1(DelayedData) {}
+}

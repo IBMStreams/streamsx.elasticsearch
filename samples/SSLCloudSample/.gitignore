@@ -1,0 +1,8 @@
+/.apt_generated/
+/output/
+/.toolkitList
+/toolkit.xml
+/doc/
+/bin/
+/opt/
+/.classpath

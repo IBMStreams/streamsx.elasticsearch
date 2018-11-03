@@ -1,0 +1,62 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  type 
+  	DataTuple = tuple <
+  		int32 id,
+  		rstring msg
+  	>;
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Custom()                      
+    {             
+    	logic
+    	onProcess :
+    	{
+    		submit(Sys.WindowMarker, Data);
+    		submit(Sys.FinalMarker, Data);
+    	}                                                         
+    }
+
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
+    
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
+	{
+		param
+			indexName : "index1" ;
+//<ERR1>	hostPort : -1 ;
+//<ERR2>	nodeList : "aaa:bbb:ccc" ;
+//<ERR3>	nodeList : "aaa:bbb" ;			
+//<ERR4>	reconnectionPolicyCount : -2 ;
+//<ERR5>	readTimeout : -3 ;
+//<ERR6>	connectionTimeout : -1 ;
+//<ERR7>	maxConnectionIdleTime : -1l ;
+			
+		config placement : partitionColocation("X");
+	}
+
+    () as TestStopSink = FileSink1(DelayedData) {}
+}

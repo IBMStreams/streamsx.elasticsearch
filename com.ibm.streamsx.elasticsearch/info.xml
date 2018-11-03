@@ -2,9 +2,22 @@
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
     <info:name>com.ibm.streamsx.elasticsearch</info:name>
-    <info:description></info:description>
-    <info:version>1.1.0</info:version>
-    <info:requiredProductVersion>4.1.0.0</info:requiredProductVersion>
+    <info:description>
+The Elasticsearch toolkit is an open source IBM Streams toolkit that provides adapters for the 
+[https://www.elastic.co/products/elasticsearch|Elasticsearch] search and analytics engine.
+
+It provides the operators
+* `ElasticsearchIndex` to store tuple data as JSON documents in Elasticsearch indices
+
+The toolkit supports the following features
+* Streams application configuration
+* Connecting to multiple Elasticsearch nodes in a cluster
+* Consistent region features to achieve at-least-once semantic where appropriate
+* Using SSL/TLS with HTTP Basic authentication to connect to servers
+ 
+    </info:description>
+    <info:version>2.0.0</info:version>
+    <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies/>
 </info:toolkitInfoModel>

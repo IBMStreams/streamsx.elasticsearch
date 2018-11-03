@@ -13,11 +13,11 @@
   <fail unless="env.STREAMS_INSTALL" message="STREAMS_INSTALL not set."/>
   <property name="streams.install" value="${env.STREAMS_INSTALL}" />
   <property name="toolkit" location="com.ibm.streamsx.elasticsearch"/>
-  <property name="toolkit.test" location="tests"/>
+  <property name="toolkit.test" location="tests/fwtests"/>
   <property name="tmp" location="tmp" />
 	
 	
-  <target name="all" depends="toolkit,samples,spldoc"/>
+  <target name="all" depends="toolkit,spldoc"/>
 
   <target name="clean" depends="cleansamples" description="clean up" >
         <delete includeemptydirs="true">
@@ -26,9 +26,14 @@
         <delete includeemptydirs="true">
           <fileset dir="${toolkit}" includes="doc/"/>
         </delete>
+        <delete includeemptydirs="true">
+          <fileset dir="${toolkit.test}" includes="scripts/"/>
+        </delete>
+        <exec executable="rm" failonerror="true" dir="${toolkit.test}">
+          <arg value="-rf" />
+          <arg value="workdir" />
+        </exec>  	
   	<ant dir="${toolkit}" target="clean"/>
-    <!-- TODO: Reactivate after tests have been created -->
-  	<!--ant dir="${toolkit.test}" target="clean"/-->
   </target>
 
   <target name="distclean" depends="clean" description="Clean all, inclusive maven downloads" >
@@ -59,35 +64,27 @@
   </target>
 
   <target name="cleansamples">
-    <subant genericantfile="${basedir}/build.xml">
-       <target name="cleantoolkit"/>
-       <target name="cleansample"/>
-       <dirset dir="samples" includes="*"/>
-    </subant>
+     <exec executable="make" failonerror="true" dir="${basedir}/samples">
+        <arg value="-f" />
+        <arg value="Makefile" />
+        <arg value="clean" />
+     </exec>
   </target>
 
   <target name="build-all-samples" depends="toolkit">
-    <subant target="buildsample" genericantfile="${basedir}/build.xml">
-       <dirset dir="samples" includes="*"/>
-    </subant>
+     <exec executable="make" failonerror="true" dir="${basedir}/samples">
+        <arg value="-f" />
+        <arg value="Makefile" />
+        <arg value="all" />
+     </exec>
   </target>
 
   <!-- Test targets -->
-  <target name="test" depends="build-all-samples">
-     <echo message="TODO: No tests have been created yet!"/>
-     <!-- TODO: Reactivate after tests have been created -->
-     <!--ant dir="${toolkit.test}" target="test"/-->
-  </target>
-
-  <!-- Targets called on samples -->
-  <target name="buildsample">
-     <echo message="Sample to build: ${basedir}"/>
-     <ant dir="${basedir}" target="all"/>
-  </target>
-
-  <target name="cleansample">
-     <echo message="Sample to clean: ${basedir}"/>
-     <ant dir="${basedir}" target="clean"/>
+  <target name="test" depends="toolkit">
+    <exec executable="./runTest.sh" failonerror="true" dir="${toolkit.test}">
+        <arg value="-s"/>
+    	<arg value="--noprompt"/>
+    </exec>  	
   </target>
 
   <target name="indextoolkit">

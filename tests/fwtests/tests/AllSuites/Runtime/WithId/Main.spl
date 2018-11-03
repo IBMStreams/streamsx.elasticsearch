@@ -1,0 +1,67 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  type 
+  	DataTuple = tuple <
+  		rstring key,
+  		int32 id,
+  		rstring rmsg
+  	>;
+  
+  graph
+  
+  	(stream<DataTuple> Data) as DataSource = Beacon()                      
+    {                                                                      
+      param                                                                
+        iterations : 5u;
+        //period : 0.01;
+      output                                                               
+        Data:	
+        		key = "docid_" + (rstring)IterationCount(),
+        		id = (int32)IterationCount(),
+        		rmsg = "This is message number " + (rstring)IterationCount();
+    }
+
+    stream<I> DelayedData = Custom(Data as I)
+    {
+    	logic
+    	onTuple I :
+    	{
+    		submit(I,DelayedData);
+    	}
+		onPunct I :
+		{
+			submit(currentPunct(),DelayedData);
+			println("punct received");
+		}    
+    	
+    	config placement : partitionColocation("X");
+    }
+    
+    
+    () as Elasticsearch1 = ElasticsearchIndex(DelayedData)
+	{
+		param
+			indexName : "index1";
+			idNameAttribute : key;
+    	config placement : partitionColocation("X");			
+	}
+
+    () as Elasticsearch2 = ElasticsearchIndex(DelayedData)
+	{
+		param
+			indexName : "index2";
+			idName : "singleton";
+    	config placement : partitionColocation("X");			
+	}
+
+    () as TestStopSink = FileSink1(DelayedData) {}
+}

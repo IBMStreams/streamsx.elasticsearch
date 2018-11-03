@@ -1,0 +1,46 @@
+{
+  "took" : 3,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 2,
+    "max_score" : null,
+    "hits" : [
+      {
+        "_index" : "idx2",
+        "_type" : "_doc",
+        "_id" : "p_ZfxGYB7wrkcG4aeR3R",
+        "_score" : null,
+        "_source" : {
+          "tstamp" : 123456,
+          "rmsg" : "This is message number 0",
+          "id" : 0,
+          "currTime" : "2018-10-30T10:48:02.476+0100"
+        },
+        "sort" : [
+          0
+        ]
+      },
+      {
+        "_index" : "idx2",
+        "_type" : "_doc",
+        "_id" : "q_ZfxGYB7wrkcG4afx03",
+        "_score" : null,
+        "_source" : {
+          "tstamp" : 123457,
+          "rmsg" : "This is message number 1",
+          "id" : 1,
+          "currTime" : "2018-10-30T10:48:04.772+0100"
+        },
+        "sort" : [
+          1
+        ]
+      }
+    ]
+  }
+}
