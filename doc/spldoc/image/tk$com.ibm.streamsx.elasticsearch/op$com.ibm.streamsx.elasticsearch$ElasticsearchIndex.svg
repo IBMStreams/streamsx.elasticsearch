@@ -14,7 +14,7 @@
       /></clipPath
     ></defs
     ><g style="fill:rgb(0,0,0); fill-opacity:0; stroke-opacity:0; stroke:rgb(0,0,0);"
-    ><rect x="0" width="672" height="100" y="0" style="stroke:none;"
+    ><rect x="0" width="872" height="100" y="0" style="stroke:none;"
     /></g
     ><g style="fill:rgb(102,153,204); stroke:rgb(102,153,204);"
     ><rect x="26" y="10" width="120" style="stroke:none;" rx="5" ry="5" height="80"
@@ -55,17 +55,23 @@
       ><set attributeName="visibility" from="hidden" end="sdt1.mouseout" to="visible" begin="sdt1.mouseover"
     /></g
     ><g visibility="hidden" style="stroke:none;font-style:italic;font-size:12px;font-family:&apos;Helvetica&apos;,&apos;SansSerif&apos;;"
-    ><rect x="47.65" y="28.0" width="385.71997" style="fill:rgb(230,230,255);stroke:rgb(0,0,80);" rx="2.0" ry="2.0" height="77.0"
-      /><text x="48.65" y="41.0"
-      >Optional: bulkSize, clusterName, hostName, hostPort, </text
+    ><rect x="47.65" y="-17.0" width="385.71997" style="fill:rgb(230,230,255);stroke:rgb(0,0,80);" rx="2.0" ry="2.0" height="122.0"
+      /><text x="48.65" y="-4.0"
+      >Optional: appConfigName, bulkSize, connectionTimeout, </text
+      ><text x="48.65" y="11.0"
+      >hostName, hostPort, idName, idNameAttribute, indexName, </text
+      ><text x="48.65" y="26.0"
+      >indexNameAttribute, maxConnectionIdleTime, nodeList, </text
+      ><text x="48.65" y="41.0"
+      >password, readTimeout, reconnectionPolicyCount, </text
       ><text x="48.65" y="56.0"
-      >idName, idNameAttribute, indexName, indexNameAttribute, </text
+      >sslDebug, sslEnabled, sslTrustAllCertificates, </text
       ><text x="48.65" y="71.0"
-      >reconnectionPolicyCount, sizeMetricsEnabled, </text
+      >sslTrustStore, sslTrustStorePassword, sslVerifyHostname, </text
       ><text x="48.65" y="86.0"
       >storeTimestamps, timestampName, timestampValueAttribute, </text
       ><text x="48.65" y="101.0"
-      >typeName, typeNameAttribute</text
+      >typeName, typeNameAttribute, userName</text
       ><set attributeName="visibility" from="hidden" end="sdt2.mouseout" to="visible" begin="sdt2.mouseover"
     /></g
     ><g visibility="hidden" style="stroke:none;font-style:italic;font-size:12px;font-family:&apos;Helvetica&apos;,&apos;SansSerif&apos;;"
