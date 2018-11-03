@@ -27,6 +27,13 @@ This toolkit is compatible with the [Streaming Analytics](https://www.ibm.com/cl
 5.  In the dialog, select IBM Streams -> SPL Project.
 6.  Select com.ibm.streamsx.elasticsearch to import the project into Studio.
 
+### Testing
+
+To test the toolkit and setup a server for testing see the following pages
+* [Local Server Setup](https://github.com/IBMStreams/streamsx.elasticsearch/blob/develop/tests/setup/README.md)
+* [Run the testsuite using the local server](https://github.com/IBMStreams/streamsx.elasticsearch/blob/develop/tests/fwtests/README.md)
+* [Run the Cloud tests using Streams analytics and a Elasticsearch Compose service](https://github.com/IBMStreams/streamsx.elasticsearch/blob/develop/tests/cloud/README.md)
+
 ### Install Elasticsearch
 
 Refer to official [Download and Installation Steps](https://www.elastic.co/downloads/elasticsearch)

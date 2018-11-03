@@ -1,4 +1,4 @@
-# streamsx.metrics Graduation Status
+# streamsx.elasticsearch Graduation Status
 
 
 ## Overview
@@ -6,21 +6,21 @@ Incubation for projects is covered here: https://github.com/IBMStreams/administr
 
 ## Status
 
-- [ ] :red_circle: Stable release(s)
+- [ ] :white_check_mark: Stable release(s)
+  * Status: Yes
+- [ ] :white_check_mark: Project is properly documented
+  * Status: Yes
+- [ ] :white_check_mark: Project has samples and instructions to help users get started easily
+  * Status: Yes
+- [ ] :large_orange_diamond: Sufficient testing
   * Status: No
-- [ ] :red_circle: Project is properly documented
+- [ ] :large_orange_diamond: Instructions on how to get started with development and contributing to project
   * Status: No
-- [ ] :red_circle: Project has samples and instructions to help users get started easily
-  * Status: No
-- [ ] :red_circle: Sufficient testing
-  * Status: No
-- [ ] :red_circle: Instructions on how to get started with development and contributing to project
-  * Status: No
-- [ ] :red_circle: Website that contains information and documentation of the project
-  * Status: No
+- [ ] :white_check_mark: Website that contains information and documentation of the project
+  * Status: Yes
 - [ ] :red_circle: Clear release plan
   * Status: **TBD**
-- [ ] :red_circle: At least one active committer
+- [ ] :white_check_mark: At least one active committer
   * Status: Yes
 
 ### Key
