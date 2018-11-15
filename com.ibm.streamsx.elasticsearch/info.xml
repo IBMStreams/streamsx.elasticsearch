@@ -16,7 +16,7 @@ The toolkit supports the following features
 * Using SSL/TLS with HTTP Basic authentication to connect to servers
  
     </info:description>
-    <info:version>2.0.0</info:version>
+    <info:version>2.0.1</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies/>
