@@ -117,6 +117,8 @@
         <arg value="${tktitle}"/>
         <arg value="--directory"/>
         <arg value="${tkdir}"/>
+     	<arg value="--output-directory"/>
+        <arg value="${tkdir}/doc/en_US/spldoc/"/>
      </exec>
   </target>
 
