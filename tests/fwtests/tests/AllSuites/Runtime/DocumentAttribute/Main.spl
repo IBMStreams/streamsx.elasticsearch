@@ -1,0 +1,45 @@
+/*
+*******************************************************************************
+* Copyright (C) 2018, International Business Machines Corporation. 
+* All Rights Reserved. *
+*******************************************************************************
+*/
+use com.ibm.streamsx.elasticsearch::* ;
+use com.ibm.streamsx.testframe::FileSink1;
+
+composite Main
+{
+  
+  graph
+    
+    stream<rstring doc> TestData = Custom()
+    {
+    	logic
+    	onProcess:
+    	{
+		mutable rstring jsonDoc = "{\"uint32val\":0,\"int32val\":0,\"float64val\":0.0,\"int64val\":0,\"rmsg\":\"This is message number 0\",\"umsg\":\"This is message number 0\",\"id\":0,\"float32val\":0.0,\"boolval\":true,\"uint64val\":0}";
+
+    		submit({doc=jsonDoc}, TestData);
+
+		jsonDoc = "{\"uint32val\":1,\"int32val\":1,\"float64val\":1.0,\"int64val\":1,\"rmsg\":\"This is message number 1\",\"umsg\":\"This is message number 1\",\"id\":1,\"float32val\":1.0,\"boolval\":true,\"uint64val\":1}";
+
+    		submit({doc=jsonDoc}, TestData);
+
+		submit(Sys.WindowMarker, TestData);
+		submit(Sys.FinalMarker, TestData);
+    	}    	
+    	config placement: partitionColocation("X");
+    }
+    
+    () as Elasticsearch1 = ElasticsearchIndex(TestData)
+	{
+		param
+			nodeList: "localhost:9200";
+			indexName: "index1";
+			typeName: "type1";
+			documentAttribute: doc;
+		config placement: partitionColocation("X");
+	}
+
+    () as TestStopSink = FileSink1(TestData) {}
+}

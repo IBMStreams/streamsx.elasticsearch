@@ -72,6 +72,9 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	private String timestampName = "timestamp";
 	private TupleAttribute<Tuple, Long> timestampValueAttribute;
 	
+	// the input stream attribute name, that contains JSON document as string
+	private TupleAttribute<Tuple, String> documentAttribute;	
+	
 	// internal members -------------------------------------------------------------------------------------
 	
 	/**
@@ -134,6 +137,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	/**
      * Convert incoming tuple attributes to JSON and output them to an Elasticsearch
      * database, configured in the operator's params.
+     * If 'documentAttribute' is set, then this attribute is used as JSON document.
      * Optionally, if 'indexName', 'typeName', and 'idName' attributes are detected 
      * in the tuple's schema, they will be used, instead.
      * will override 
@@ -143,48 +147,56 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
      */
     @Override
     public void process(StreamingInput<Tuple> stream, Tuple tuple) throws Exception {
-    	
-    	// Get attribute names.
-		StreamSchema schema = tuple.getStreamSchema();
-    	Set<String> attributeNames = schema.getAttributeNames();
-    	
-    	// Add attribute names/values to jsonDocuments.
-    	JSONObject jsonDocuments = new JSONObject();
-    	for(String attributeName : attributeNames) {
-    		
-    		// Skip attributes used explicitly for defining index, type, id, and timestamps.
-    		if (indexNameAttribute != null && indexNameAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		} else if (typeNameAttribute != null && typeNameAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		} else if (timestampValueAttribute != null && timestampValueAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		}
-    		
-    		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
-    			jsonDocuments.put(attributeName, tuple.getObject(attributeName).toString());
-    		} else {
-    			jsonDocuments.put(attributeName, tuple.getObject(attributeName));
-    		}
+    	String source = null;
+    	if (documentAttribute != null) {
+    		source = documentAttribute.getValue(tuple);
     	}
-    	
-    	// Add timestamp, if enabled.
-    	if (storeTimestamps) {
-    		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
-    		
-    		String timestampToInsert;
-    		if (timestampValueAttribute != null) {
-    			long timestamp = getTimestampValue(tuple).longValue();
-    			timestampToInsert = df.format(new Date(timestamp));
-    		} else {
-    			timestampToInsert = df.format(new Date(System.currentTimeMillis()));
-    		}
-    		
-    		jsonDocuments.put(timestampName, timestampToInsert);
+        else {
+	    	// Get attribute names.
+			StreamSchema schema = tuple.getStreamSchema();
+	    	Set<String> attributeNames = schema.getAttributeNames();
+	    	
+	    	// Add attribute names/values to jsonDocuments.
+	    	JSONObject jsonDocuments = new JSONObject();
+	    	for(String attributeName : attributeNames) {
+	    		
+	    		// Skip attributes used explicitly for defining index, type, id, and timestamps.
+	    		if (indexNameAttribute != null && indexNameAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		} else if (typeNameAttribute != null && typeNameAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		} else if (timestampValueAttribute != null && timestampValueAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		}
+	    		
+	    		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
+	    			jsonDocuments.put(attributeName, tuple.getObject(attributeName).toString());
+	    		} else {
+	    			jsonDocuments.put(attributeName, tuple.getObject(attributeName));
+	    		}
+	    	}
+	    	
+	    	// Add timestamp, if enabled.
+	    	if (storeTimestamps) {
+	    		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
+	    		
+	    		String timestampToInsert;
+	    		if (timestampValueAttribute != null) {
+	    			long timestamp = getTimestampValue(tuple).longValue();
+	    			timestampToInsert = df.format(new Date(timestamp));
+	    		} else {
+	    			timestampToInsert = df.format(new Date(System.currentTimeMillis()));
+	    		}
+	    		
+	    		jsonDocuments.put(timestampName, timestampToInsert);
+	    	}
+	    	
+	    	// build json string
+	    	source = jsonDocuments.toString();
     	}
-        	
+
     	// Get index, type, and ID.
     	String indexToInsert = getIndex(tuple);
     	String typeToInsert = getType(tuple);
@@ -194,9 +206,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     		logger.error(Messages.getString("ELASTICSEARCH_UNKNOWN_INDEX"));
     		return;
     	}
-
-    	// Add document to bulk
-    	String source = jsonDocuments.toString();
+    	
     	client.bulkIndexAddDocument(source,indexToInsert,typeToInsert,idToInsert);
     	currentBulkSize++;
     	
@@ -380,6 +390,11 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     public static void compiletimeChecker(OperatorContextChecker checker) {
 		StreamsHelper.checkCheckpointConfig(checker, "ElasticsearchIndex");
 		StreamsHelper.checkConsistentRegion(checker, "ElasticsearchIndex");
+		
+		if (checker.getOperatorContext().getParameterNames().contains("storeTimestamps") &&
+			checker.getOperatorContext().getParameterNames().contains("documentAttribute")) {
+			checker.setInvalidContext(Messages.getString("ELASTICSEARCH_INVALID_PARAMETERS", "storeTimestamps", "documentAttribute"), null );
+		}		
 	}    
 
 	@ContextCheck(compile = false, runtime = true)
@@ -514,6 +529,14 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	)
 	public void setBulkSize(int bulkSize) {
 		this.bulkSize = bulkSize;
+	}
+	
+	@Parameter(name="documentAttribute", optional=true,
+		description="Specifies the name of an attribute in the input tuple, containing the document in JSON format to be inserted to. "
+			+ "The parameter 'storeTimestamps' must not be set in conjunction with the 'documentAttribute' parameter."
+	)
+	public void setDocumentAttribute(TupleAttribute<Tuple, String> documentAttribute) {
+		this.documentAttribute = documentAttribute;
 	}
 	
 	// operator and port documentation -------------------------------------------------------------------------------------------------------
