@@ -19,5 +19,5 @@
 	<classpathentry kind="lib" path="opt/downloaded/slf4j-api-1.7.25.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/commons-codec-1.11.jar"/>
 	<classpathentry kind="lib" path="opt/downloaded/guava-26.0-jre.jar"/>
-	<classpathentry kind="output" path="impl/java/bin"/>
+	<classpathentry kind="output" path="impl/java/classes"/>
 </classpath>
