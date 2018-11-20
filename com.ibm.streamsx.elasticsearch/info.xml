@@ -40,7 +40,7 @@ To get the certificates you have multiple options
   Afterwards you can examine the certificate chain and export any missing certificate to a file.
 
 Once you have the certificate(s) available as files in PEM format, copy it to the etc folder of your application
-and use the Java kextool command to create a truststore file and import the certificates
+and use the Java keytool command to create a truststore file and import the certificates
 
 `keytool -import -trustcacerts -file newCertFile.crt -keystore trustStore.jks -storepass 123456`
 
