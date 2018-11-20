@@ -2,20 +2,74 @@
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
     <info:name>com.ibm.streamsx.elasticsearch</info:name>
-    <info:description>
+    <info:description><![CDATA[
+# Overview
+
 The Elasticsearch toolkit is an open source IBM Streams toolkit that provides adapters for the 
 [https://www.elastic.co/products/elasticsearch|Elasticsearch] search and analytics engine.
 
-It provides the operators
+**It provides the operators**
 * `ElasticsearchIndex` to store tuple data as JSON documents in Elasticsearch indices
 
-The toolkit supports the following features
+**The toolkit supports the following features**
 * Streams application configuration
 * Connecting to multiple Elasticsearch nodes in a cluster
 * Consistent region features to achieve at-least-once semantic where appropriate
 * Using SSL/TLS with HTTP Basic authentication to connect to servers
- 
-    </info:description>
+
+# Additional information
+
++ What's new
+
+This is an overview of changes for major and minor version upgrades. For details see the Releases in public Github.
+
+++ What is new in version 2.1.0
+
+* The ElasticsearchIndex operator provides a new parameter 'documentAttribute'. Use this to pass complete JSON documents to the operator for indexing.
+* Documentation improvements.
+
++ Creating truststore files for usage with SSL
+
+This is only needed, if your Java runtime does not trust the server certificates per default. 
+In that case you have to manually download the certificate (or the certificate of the CA) and create a Java truststore file for usage with the operators.
+
+To get the certificates you have multiple options
+* You can use the `openssl s_client` command to print all server certificates to the console`
+* You can use the `curl` command to access the server and have debug informations print out
+* The easiest way is probably to enter the server URL in a firefox browser and than click on the little green lock icon in the URL bar.
+  Afterwards you can examine the certificate chain and export any missing certificate to a file.
+
+Once you have the certificate(s) available as files in PEM format, copy it to the etc folder of your application
+and use the Java kextool command to create a truststore file and import the certificates
+
+`keytool -import -trustcacerts -file newCertFile.crt -keystore trustStore.jks -storepass 123456`
+
+This creates a file named `trustStore.jks` in the etc directory with a password of `123456`
+
+Use these values for the operator parameters, in order to access the server.
+
++ Troubleshooting SSL connection problems
+
+If you encounter problems connecting to an SSL/TLS server, use the following parameters to diagnose the problem.
+
+**NOTE:** these parameters should only be used for debugging purposes, and must not be used in production environments
+as they constitute serious security holes.
+
+* `sslDebug` this will cause all debug information from the Java SSL/TLS layer to be dumped to the conole log
+
+* `sslTrustAllCertificates` you can use this parameter to detect the following situations:
+  * The server uses a self-signed certificate which of course is not trusted by your default Java runtime.
+  * The server certificate is signed by a Certification authority that is not trusted by default by your Java runtime
+  * The servers certificate chain contains an untrusted certificate
+  
+  You can list the trusted certificate authorities in your Java runtime by using the keytool command, for example:
+  
+  `keytool -keystore "$JAVA_HOME/jre/lib/security/cacerts" -list -storepass changeit`
+
+* `sslVerifyHostname` in case the certificate chain is valid, but the certificate does not contain the hostname of the server
+  you can use this parameter to temporarily disable hostnam verification.
+
+]]></info:description>
     <info:version>2.1.0</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
