@@ -44,7 +44,12 @@ import com.ibm.streamsx.elasticsearch.client.JESTClient;
 import com.ibm.streamsx.elasticsearch.i18n.Messages;
 import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
 
-@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription+ElasticsearchIndex.CR_DESC+ElasticsearchIndex.CR_EXAMPLES_DESC)
+@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=
+	ElasticsearchIndex.operatorDescription +
+	ElasticsearchIndex.indexCreation +
+	ElasticsearchIndex.CR_DESC + 
+	ElasticsearchIndex.CR_EXAMPLES_DESC
+)
 @InputPorts({@InputPortSet(
 		id="0",
 		description=ElasticsearchIndex.iport0Description,
@@ -616,6 +621,47 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 			"\\n    }"+	
 			"\\n"			
 			;	
-	
+
+	public static final String indexCreation =
+			"\\n"+
+			"\\n+ Details on index creation\\n"+
+			"\\n# Automatic index creation \\n"+
+			"\\nIf you specify an index that does not already exists in the Elasticsearch server, it will be created automatically by the server. " +
+			"\\nIn that case you have no control over the parameters of the index and the document field mapping. " +
+			"\\nThere are several defaults that will be used for index creation, for details check the Elasticsearch documentation, here: " +					
+			"\\n[https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html|Create index] " +
+			"\\nThe type mapping of document fields for new indices is determined by the 'dynamic mapping' rules of Elasticsearch. This feature is described in the documentation, for example here: " +
+			"\\n[https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-mapping.html|Dynamic Mapping] \\n" +
+			"\\nThe dynamic mapping may not automatically recognise the desired data type for a field, for example the Elasticsearch geo_point type is not automatically detected, when you send a string field formatted as geo_point string. " +
+			"In that case the geo_point will appear as normal text string in the Elasticsearch index, and may limit your ability to query the index. \\n" +
+			"\\n**To take full control about the indices your application is using, it is recomended to manually create them before usage** \\n" +
+			"\\n" +
+			"# Manual index creation \\n" +
+			"\\nIf you manually create the index before usage, you can specify all necessary parameters of the index. So you "+
+			"do not have to rely on the automatic index creation of the Elasticsearch server. \\n"+
+			"\\nMost likely you want to set these parameters \\n"+
+			"* The number of shards for the index\\n"+
+			"* The number of replicas for the index\\n"+
+			"* The type mapping of the index \\n"+
+			"\\nThe following example shows a curl command to create an index named 'test' with 2 shards and one replica. The schema for the index contains one field named 'locationName' of type text and one field "+
+			"named 'location' of type geo_point'. \\n"+
+			"\\n"+
+			"\\n    curl -X PUT \\\"localhost:9200/test\\\" -H 'Content-Type: application/json' -d'"+
+			"\\n    {"+
+			"\\n        \\\"settings\\\" : {"+
+			"\\n            \\\"number_of_shards\\\" : 2,"+
+			"\\n            \\\"number_of_replicas\\\" : 1"+
+			"\\n        },"+
+			"\\n        \\\"mappings\\\" : {"+
+			"\\n            \\\"_doc\\\" : {"+
+			"\\n                \\\"properties\\\" : {"+
+			"\\n                    \\\"locationName\\\" : { \\\"type\\\" : \\\"text\\\" },"+
+			"\\n                    \\\"location\\\" : { \\\"type\\\" : \\\"geo_point\\\" }"+
+			"\\n                }"+
+			"\\n            }"+
+			"\\n        }"+
+			"\\n    }'"+
+			"\\n\\n"
+			;	
 	
 }
