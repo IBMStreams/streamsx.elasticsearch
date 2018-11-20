@@ -37,7 +37,7 @@ To run the complete test suite, execute:
 
 `ant test`
 
-For more information read the file [TEST](tests/fwtests/README.md) .
+For more information read the file [TEST](https://github.com/IBMStreams/streamsx.elasticsearch/blob/master/tests/fwtests/README.md) .
 
 ## Clean the toolkit
 
