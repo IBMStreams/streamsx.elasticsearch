@@ -49,7 +49,7 @@ class TestDistributed(unittest.TestCase):
         self.tester.tuple_count(test_op.stream, num_result_tuples, exact=False)
 
         cfg = {}
-        job_config = streamsx.topology.context.JobConfig(tracing='debug')
+        job_config = streamsx.topology.context.JobConfig(tracing='warn')
         # icp config
         if ("TestICP" in str(self)):
             job_config.raw_overlay = {"configInstructions": {"convertTagSet": [ {"targetTagSet":["python"] } ]}}
