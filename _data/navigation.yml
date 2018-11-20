@@ -1,9 +1,18 @@
 # main links
 main:
+  - title: "Domain Knowledge"
+    url: /docs/knowledge/overview/
   - title: "User Documentation"
     url: /docs/user/overview
   - title: "Developer Documentation"
     url: /docs/developer/overview
+
+# knowledge documentation links
+knowledgedocs:
+  - title: Background knowledge
+    children:
+      - title: "Overview - Use case"
+        url: /docs/knowledge/usecase/overview
 
 # user documentation links
 userdocs:
@@ -12,30 +21,10 @@ userdocs:
       - title: "Overview"
         url: /docs/user/overview
 
-#      - title: "Basic usage"
-#        url: /docs/user/basicuseage
-#      - title: "Basic Samples"
-#        url: /docs/user/basicsamples
-#      - title: "Advanced usage"
-#        url: /docs/user/advancedusage
-#      - title: "Advanced Samples"
-#        url: /docs/user/advancedsamples
-
 # developer documentation links
 developerdocs:
   - title: Developer documentation
     children:
       - title: "General Toolkit development"
         url: /docs/developer/overview
-
-#      - title: "Requirements"
-#        url: /docs/developer/requirements
-#      - title: "Design"
-#        url: /docs/developer/design
-#      - title: "Build"
-#        url: /docs/developer/build
-#      - title: "Implementation"
-#        url: /docs/developer/implementation
-#      - title: "Test"
-#        url: /docs/developer/test
 
