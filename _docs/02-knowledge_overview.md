@@ -12,7 +12,7 @@ sidebar:
 {% include editme %}
 
 The Elasticsearch toolkit is an open source IBM Streams toolkit that provides adapters for the 
-[https://www.elastic.co/products/elasticsearch|Elasticsearch] search and analytics engine.
+[Elasticsearch](https://www.elastic.co/products/elasticsearch) search and analytics engine.
 
 It provides the operators
 * `ElasticsearchIndex` to store tuple data as JSON documents in Elasticsearch indices
