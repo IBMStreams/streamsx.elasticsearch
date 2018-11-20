@@ -12,7 +12,7 @@ knowledgedocs:
   - title: Background knowledge
     children:
       - title: "Overview - Use case"
-        url: /docs/knowledge/usecase/overview
+        url: /docs/knowledge/overview
 
 # user documentation links
 userdocs:
