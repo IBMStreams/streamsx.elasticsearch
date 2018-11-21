@@ -17,6 +17,7 @@
 	<property name="ext.downloads.dir" value="opt/downloaded" />
 	<property name="src.dir" value="impl/java/src" />
 	<property name="build.dir" value="impl/java/classes" />
+	<property name="bin.dir" value="impl/java/bin" /> <!-- clean Studio artifacts -->
 	<property name="impl.lib.dir" value="impl/lib" />
 	<property name="lib.dir" value="lib" />
 	<property name="spl-mt" value="${streams.install}/bin/spl-make-toolkit" />
@@ -41,6 +42,7 @@
             <arg value="${basedir}"/>
         </exec>
 		<delete dir="${build.dir}" />
+		<delete dir="${bin.dir}" /> <!-- clean Studio artifacts -->
 		<delete dir="${impl.lib.dir}" />
 		<delete dir="output"/>
 		<delete dir="${test.run.dir}"/>

@@ -43,6 +43,15 @@
         </exec>
     </target>
 
+    <target name="testicp" depends="clean, indextoolkits">
+        <exec executable="python3" failonerror="true">
+            <arg value="-u"/>
+            <arg value="-m"/>
+            <arg value="unittest"/>
+            <arg value="test_es.TestICP"/>
+        </exec>
+    </target>
+
     <target name="testlocal" depends="clean, indextoolkits">
         <exec executable="python3" failonerror="true">
             <arg value="-u"/>

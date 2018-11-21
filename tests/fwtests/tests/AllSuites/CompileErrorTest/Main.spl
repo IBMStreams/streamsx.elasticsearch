@@ -5,7 +5,7 @@ public composite Main {
 		() as JCP = JobControlPlane() {}
 		
 		
-		stream<float32 counter> Documents = Beacon()
+		stream<float32 counter, rstring doc> Documents = Beacon()
 		{
 			logic state : { mutable float32 i=0f; }
 			param
@@ -21,6 +21,8 @@ public composite Main {
 			param
 				appConfigName: "dummy";
 				indexName : "indexDummy";
+				//<InvalidParameterCombination>storeTimestamps: true;
+				//<InvalidParameterCombination>documentAttribute: doc;
 			//<NotSupportedCheckpointOperatorDriven>config checkpoint: operatorDriven;
 			//<NotSupportedCheckpointOperatorPeriodic>config checkpoint: periodic(5.0);		
 		}		

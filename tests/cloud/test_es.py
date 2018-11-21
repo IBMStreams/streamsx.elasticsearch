@@ -49,7 +49,10 @@ class TestDistributed(unittest.TestCase):
         self.tester.tuple_count(test_op.stream, num_result_tuples, exact=False)
 
         cfg = {}
-        job_config = streamsx.topology.context.JobConfig(tracing='debug')
+        job_config = streamsx.topology.context.JobConfig(tracing='warn')
+        # icp config
+        if ("TestICP" in str(self)):
+            job_config.raw_overlay = {"configInstructions": {"convertTagSet": [ {"targetTagSet":["python"] } ]}}
         job_config.add(cfg)
 
         # Run the test
@@ -86,13 +89,40 @@ class TestDistributed(unittest.TestCase):
         self._es.indices.delete(index=self._indexName, ignore=[400, 404]) 
         numTuples = 20000 # num generated tuples
         bulkSize = 1000
-        self._build_launch_app("test_consistent_region_with_resets", "com.ibm.streamsx.elasticsearch.test::TestBulk", {'indexName':self._indexName, 'numTuples':numTuples, 'bulkSize':bulkSize}, numTuples, 'es_test')
+        self._build_launch_app("test_bulk", "com.ibm.streamsx.elasticsearch.test::TestBulk", {'indexName':self._indexName, 'numTuples':numTuples, 'bulkSize':bulkSize}, numTuples, 'es_test')
         self._validate_count(self._indexName, numTuples);
 
     # ------------------------------------
 
 class TestInstall(TestDistributed):
     """ Test invocations of composite operators in local Streams instance using installed toolkit """
+
+    def setUp(self):
+        Tester.setup_distributed(self)
+        self.streams_install = os.environ.get('STREAMS_INSTALL')
+        self.elasticsearch_toolkit_location = self.streams_install+'/toolkits/com.ibm.streamsx.elasticsearch'
+
+
+class TestICP(TestDistributed):
+    """ Test invocations of composite operators in remote Streams instance using local toolkit """
+
+    @classmethod
+    def setUpClass(self):
+        super().setUpClass()
+        env_chk = True
+        try:
+            print("STREAMS_REST_URL="+str(os.environ['STREAMS_REST_URL']))
+        except KeyError:
+            env_chk = False
+        assert env_chk, "STREAMS_REST_URL environment variable must be set"
+
+
+class TestICPInstall(TestICP):
+    """ Test invocations of composite operators in remote Streams instance using local installed toolkit """
+
+    @classmethod
+    def setUpClass(self):
+        super().setUpClass()
 
     def setUp(self):
         Tester.setup_distributed(self)

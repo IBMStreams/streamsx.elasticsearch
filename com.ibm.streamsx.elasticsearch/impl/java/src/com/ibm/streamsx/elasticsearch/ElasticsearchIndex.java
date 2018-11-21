@@ -44,7 +44,12 @@ import com.ibm.streamsx.elasticsearch.client.JESTClient;
 import com.ibm.streamsx.elasticsearch.i18n.Messages;
 import com.ibm.streamsx.elasticsearch.util.StreamsHelper;
 
-@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=ElasticsearchIndex.operatorDescription+ElasticsearchIndex.CR_DESC+ElasticsearchIndex.CR_EXAMPLES_DESC)
+@PrimitiveOperator(name="ElasticsearchIndex", namespace="com.ibm.streamsx.elasticsearch", description=
+	ElasticsearchIndex.operatorDescription +
+	ElasticsearchIndex.indexCreation +
+	ElasticsearchIndex.CR_DESC + 
+	ElasticsearchIndex.CR_EXAMPLES_DESC
+)
 @InputPorts({@InputPortSet(
 		id="0",
 		description=ElasticsearchIndex.iport0Description,
@@ -71,6 +76,9 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	private boolean storeTimestamps = false;	
 	private String timestampName = "timestamp";
 	private TupleAttribute<Tuple, Long> timestampValueAttribute;
+	
+	// the input stream attribute name, that contains JSON document as string
+	private TupleAttribute<Tuple, String> documentAttribute;	
 	
 	// internal members -------------------------------------------------------------------------------------
 	
@@ -134,6 +142,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 	/**
      * Convert incoming tuple attributes to JSON and output them to an Elasticsearch
      * database, configured in the operator's params.
+     * If 'documentAttribute' is set, then this attribute is used as JSON document.
      * Optionally, if 'indexName', 'typeName', and 'idName' attributes are detected 
      * in the tuple's schema, they will be used, instead.
      * will override 
@@ -143,48 +152,56 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
      */
     @Override
     public void process(StreamingInput<Tuple> stream, Tuple tuple) throws Exception {
-    	
-    	// Get attribute names.
-		StreamSchema schema = tuple.getStreamSchema();
-    	Set<String> attributeNames = schema.getAttributeNames();
-    	
-    	// Add attribute names/values to jsonDocuments.
-    	JSONObject jsonDocuments = new JSONObject();
-    	for(String attributeName : attributeNames) {
-    		
-    		// Skip attributes used explicitly for defining index, type, id, and timestamps.
-    		if (indexNameAttribute != null && indexNameAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		} else if (typeNameAttribute != null && typeNameAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		} else if (timestampValueAttribute != null && timestampValueAttribute.getAttribute().getName().equals(attributeName)) {
-    			continue;
-    		}
-    		
-    		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
-    			jsonDocuments.put(attributeName, tuple.getObject(attributeName).toString());
-    		} else {
-    			jsonDocuments.put(attributeName, tuple.getObject(attributeName));
-    		}
+    	String source = null;
+    	if (documentAttribute != null) {
+    		source = documentAttribute.getValue(tuple);
     	}
-    	
-    	// Add timestamp, if enabled.
-    	if (storeTimestamps) {
-    		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
-    		
-    		String timestampToInsert;
-    		if (timestampValueAttribute != null) {
-    			long timestamp = getTimestampValue(tuple).longValue();
-    			timestampToInsert = df.format(new Date(timestamp));
-    		} else {
-    			timestampToInsert = df.format(new Date(System.currentTimeMillis()));
-    		}
-    		
-    		jsonDocuments.put(timestampName, timestampToInsert);
+        else {
+	    	// Get attribute names.
+			StreamSchema schema = tuple.getStreamSchema();
+	    	Set<String> attributeNames = schema.getAttributeNames();
+	    	
+	    	// Add attribute names/values to jsonDocuments.
+	    	JSONObject jsonDocuments = new JSONObject();
+	    	for(String attributeName : attributeNames) {
+	    		
+	    		// Skip attributes used explicitly for defining index, type, id, and timestamps.
+	    		if (indexNameAttribute != null && indexNameAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		} else if (typeNameAttribute != null && typeNameAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		} else if (idNameAttribute != null && idNameAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		} else if (timestampValueAttribute != null && timestampValueAttribute.getAttribute().getName().equals(attributeName)) {
+	    			continue;
+	    		}
+	    		
+	    		if (schema.getAttribute(attributeName).getType().getMetaType() == Type.MetaType.RSTRING) {
+	    			jsonDocuments.put(attributeName, tuple.getObject(attributeName).toString());
+	    		} else {
+	    			jsonDocuments.put(attributeName, tuple.getObject(attributeName));
+	    		}
+	    	}
+	    	
+	    	// Add timestamp, if enabled.
+	    	if (storeTimestamps) {
+	    		DateFormat df = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSSZZ");
+	    		
+	    		String timestampToInsert;
+	    		if (timestampValueAttribute != null) {
+	    			long timestamp = getTimestampValue(tuple).longValue();
+	    			timestampToInsert = df.format(new Date(timestamp));
+	    		} else {
+	    			timestampToInsert = df.format(new Date(System.currentTimeMillis()));
+	    		}
+	    		
+	    		jsonDocuments.put(timestampName, timestampToInsert);
+	    	}
+	    	
+	    	// build json string
+	    	source = jsonDocuments.toString();
     	}
-        	
+
     	// Get index, type, and ID.
     	String indexToInsert = getIndex(tuple);
     	String typeToInsert = getType(tuple);
@@ -194,9 +211,7 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     		logger.error(Messages.getString("ELASTICSEARCH_UNKNOWN_INDEX"));
     		return;
     	}
-
-    	// Add document to bulk
-    	String source = jsonDocuments.toString();
+    	
     	client.bulkIndexAddDocument(source,indexToInsert,typeToInsert,idToInsert);
     	currentBulkSize++;
     	
@@ -380,6 +395,11 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
     public static void compiletimeChecker(OperatorContextChecker checker) {
 		StreamsHelper.checkCheckpointConfig(checker, "ElasticsearchIndex");
 		StreamsHelper.checkConsistentRegion(checker, "ElasticsearchIndex");
+		
+		if (checker.getOperatorContext().getParameterNames().contains("storeTimestamps") &&
+			checker.getOperatorContext().getParameterNames().contains("documentAttribute")) {
+			checker.setInvalidContext(Messages.getString("ELASTICSEARCH_INVALID_PARAMETERS", "storeTimestamps", "documentAttribute"), null );
+		}		
 	}    
 
 	@ContextCheck(compile = false, runtime = true)
@@ -516,6 +536,14 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 		this.bulkSize = bulkSize;
 	}
 	
+	@Parameter(name="documentAttribute", optional=true,
+		description="Specifies the name of an attribute in the input tuple, containing the document in JSON format to be inserted to. "
+			+ "The parameter 'storeTimestamps' must not be set in conjunction with the 'documentAttribute' parameter."
+	)
+	public void setDocumentAttribute(TupleAttribute<Tuple, String> documentAttribute) {
+		this.documentAttribute = documentAttribute;
+	}
+	
 	// operator and port documentation -------------------------------------------------------------------------------------------------------
 
 	static final String operatorDescription = 
@@ -593,6 +621,47 @@ public class ElasticsearchIndex extends AbstractElasticsearchOperator implements
 			"\\n    }"+	
 			"\\n"			
 			;	
-	
+
+	public static final String indexCreation =
+			"\\n"+
+			"\\n+ Details on index creation\\n"+
+			"\\n# Automatic index creation \\n"+
+			"\\nIf you specify an index that does not already exists in the Elasticsearch server, it will be created automatically by the server. " +
+			"\\nIn that case you have no control over the parameters of the index and the document field mapping. " +
+			"\\nThere are several defaults that will be used for index creation, for details check the Elasticsearch documentation, here: " +					
+			"\\n[https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html|Create index] " +
+			"\\nThe type mapping of document fields for new indices is determined by the 'dynamic mapping' rules of Elasticsearch. This feature is described in the documentation, for example here: " +
+			"\\n[https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-mapping.html|Dynamic Mapping] \\n" +
+			"\\nThe dynamic mapping may not automatically recognise the desired data type for a field, for example the Elasticsearch geo_point type is not automatically detected, when you send a string field formatted as geo_point string. " +
+			"In that case the geo_point will appear as normal text string in the Elasticsearch index, and may limit your ability to query the index. \\n" +
+			"\\n**To take full control about the indices your application is using, it is recomended to manually create them before usage** \\n" +
+			"\\n" +
+			"# Manual index creation \\n" +
+			"\\nIf you manually create the index before usage, you can specify all necessary parameters of the index. So you "+
+			"do not have to rely on the automatic index creation of the Elasticsearch server. \\n"+
+			"\\nMost likely you want to set these parameters \\n"+
+			"* The number of shards for the index\\n"+
+			"* The number of replicas for the index\\n"+
+			"* The type mapping of the index \\n"+
+			"\\nThe following example shows a curl command to create an index named 'test' with 2 shards and one replica. The schema for the index contains one field named 'locationName' of type text and one field "+
+			"named 'location' of type geo_point'. \\n"+
+			"\\n"+
+			"\\n    curl -X PUT \\\"localhost:9200/test\\\" -H 'Content-Type: application/json' -d'"+
+			"\\n    {"+
+			"\\n        \\\"settings\\\" : {"+
+			"\\n            \\\"number_of_shards\\\" : 2,"+
+			"\\n            \\\"number_of_replicas\\\" : 1"+
+			"\\n        },"+
+			"\\n        \\\"mappings\\\" : {"+
+			"\\n            \\\"_doc\\\" : {"+
+			"\\n                \\\"properties\\\" : {"+
+			"\\n                    \\\"locationName\\\" : { \\\"type\\\" : \\\"text\\\" },"+
+			"\\n                    \\\"location\\\" : { \\\"type\\\" : \\\"geo_point\\\" }"+
+			"\\n                }"+
+			"\\n            }"+
+			"\\n        }"+
+			"\\n    }'"+
+			"\\n\\n"
+			;	
 	
 }

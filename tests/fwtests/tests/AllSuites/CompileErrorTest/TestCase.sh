@@ -1,4 +1,4 @@
-#--variantList='NotStartOfCR NotSupportedCheckpointOperatorPeriodic NotSupportedCheckpointOperatorDriven'
+#--variantList='NotStartOfCR NotSupportedCheckpointOperatorPeriodic NotSupportedCheckpointOperatorDriven InvalidParameterCombination'
 
 setCategory 'quick'
 PREPS='copyAndMorphSpl'
@@ -15,6 +15,8 @@ myEval() {
 		linewisePatternMatchInterceptAndSuccess "$TT_evaluationFile" "true" 'ERROR: CDIST3501E*';;
 	NotSupportedCheckpointOperatorDriven)
 		linewisePatternMatchInterceptAndSuccess "$TT_evaluationFile" "true" 'ERROR: CDIST3502E*';;
+	InvalidParameterCombination)
+		linewisePatternMatchInterceptAndSuccess "$TT_evaluationFile" "true" 'ERROR: CDIST3511E*';;
 	*)
 		printErrorAndExit "Wrong case variant" $errRt
 	esac
