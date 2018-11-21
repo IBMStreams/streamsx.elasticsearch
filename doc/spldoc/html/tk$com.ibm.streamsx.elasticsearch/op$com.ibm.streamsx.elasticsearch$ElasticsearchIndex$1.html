@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en-us" lang="en-us">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta name="copyright" content="(C) Copyright 2005"/>
+<meta name="DC.rights.owner" content="(C) Copyright 2005"/>
+<meta name="DC.Type" content="reference"/>
+<meta name="DC.Title" content="Details on index creation"/>
+<meta name="DC.Format" content="XHTML"/>
+<meta name="DC.Identifier" content="spldoc_page"/>
+<link rel="stylesheet" type="text/css" href="../../html/commonltr.css"/>
+<link rel="stylesheet" type="text/css" href="../../html/spldoc.css"/>
+<title>Details on index creation</title>
+</head>
+<body id="spldoc_page">
+
+
+<h1 class="title topictitle1">Details on index creation</h1>
+
+<div class="body refbody">
+<div class="section">
+<p class="p">
+<a class="xref" href="../toolkits/toolkits.html">IBMStreams streamsx.elasticsearch Toolkit</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.elasticsearch.html">com.ibm.streamsx.elasticsearch 2.1.0</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.elasticsearch.html">com.ibm.streamsx.elasticsearch</a> &gt; <a class="xref" href="op$com.ibm.streamsx.elasticsearch$ElasticsearchIndex.html">ElasticsearchIndex</a> &gt; Details on index creation</p>
+
+</div>
+
+
+<div class="section">
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Automatic index creation 
+</h2>
+
+<p class="p">If you specify an index that does not already exists in the Elasticsearch server, it will be created automatically by the server.  In that case you have no control over the parameters of the index and the document field mapping.  There are several defaults that will be used for index creation, for details check the Elasticsearch documentation, here:  <a class="xref" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html">Create index</a>  The type mapping of document fields for new indices is determined by the 'dynamic mapping' rules of Elasticsearch. This feature is described in the documentation, for example here:  <a class="xref" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-mapping.html">Dynamic Mapping</a> 
+</p>
+
+<p class="p">The dynamic mapping may not automatically recognise the desired data type for a field, for example the Elasticsearch geo_point type is not automatically detected, when you send a string field formatted as geo_point string. In that case the geo_point will appear as normal text string in the Elasticsearch index, and may limit your ability to query the index. 
+</p>
+
+<p class="p"><strong class="ph b">To take full control about the indices your application is using, it is recomended to manually create them before usage</strong> 
+</p>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle">Manual index creation 
+</h2>
+
+<p class="p">If you manually create the index before usage, you can specify all necessary parameters of the index. So you do not have to rely on the automatic index creation of the Elasticsearch server. 
+</p>
+
+<div class="p">Most likely you want to set these parameters 
+<ul class="ul">
+<li class="li"> The number of shards for the index</li>
+
+<li class="li"> The number of replicas for the index</li>
+
+<li class="li"> The type mapping of the index </li>
+
+</ul>
+
+</div>
+
+<p class="p">The following example shows a curl command to create an index named 'test' with 2 shards and one replica. The schema for the index contains one field named 'locationName' of type text and one field named 'location' of type geo_point'. 
+</p>
+
+<div class="p">
+<pre class="pre codeblock">
+curl -X PUT "localhost:9200/test" -H 'Content-Type: application/json' -d'
+{
+    "settings" : {
+        "number_of_shards" : 2,
+        "number_of_replicas" : 1
+    },
+    "mappings" : {
+        "_doc" : {
+            "properties" : {
+                "locationName" : { "type" : "text" },
+                "location" : { "type" : "geo_point" }
+            }
+        }
+    }
+}'
+</pre>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+</body>
+</html>

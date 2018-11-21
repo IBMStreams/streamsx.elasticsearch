@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en-us" lang="en-us">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta name="copyright" content="(C) Copyright 2005"/>
+<meta name="DC.rights.owner" content="(C) Copyright 2005"/>
+<meta name="DC.Type" content="reference"/>
+<meta name="DC.Title" content="Example for guaranteed processing with exactly-once semantics"/>
+<meta name="DC.Format" content="XHTML"/>
+<meta name="DC.Identifier" content="spldoc_page"/>
+<link rel="stylesheet" type="text/css" href="../../html/commonltr.css"/>
+<link rel="stylesheet" type="text/css" href="../../html/spldoc.css"/>
+<title>Example for guaranteed processing with exactly-once semantics</title>
+</head>
+<body id="spldoc_page">
+
+
+<h1 class="title topictitle1">Example for guaranteed processing with exactly-once semantics</h1>
+
+<div class="body refbody">
+<div class="section">
+<p class="p">
+<a class="xref" href="../toolkits/toolkits.html">IBMStreams streamsx.elasticsearch Toolkit</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.elasticsearch.html">com.ibm.streamsx.elasticsearch 2.1.0</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.elasticsearch.html">com.ibm.streamsx.elasticsearch</a> &gt; <a class="xref" href="op$com.ibm.streamsx.elasticsearch$ElasticsearchIndex.html">ElasticsearchIndex</a> &gt; Example for guaranteed processing with exactly-once semantics</p>
+
+</div>
+
+
+<div class="section">
+<div class="p">To achieve exactly-once semantics with the ElasticsearchIndex operator:
+<ul class="ul">
+<li class="li"> The operator must be part of a consistent region. In case of failures tuples are replayed by the source operator.</li>
+
+<li class="li"> In order to overwrite existing documents, ensure that the idNameAttribute parameter set, for an input stream attribute containing a unique key.</li>
+
+</ul>
+
+</div>
+
+<p class="p">In the sample below the ElasticsearchIndex operator reads Elasticsearch credentials from application configuration. Ensure that application configuration with name "es" has been created with the properties nodeList, userName and password.
+</p>
+
+<div class="p">
+<pre class="pre codeblock">
+composite Main {
+    param
+        expression&lt;rstring&gt; $indexName: getSubmissionTimeValue("indexName", "index-sample");
+
+    graph
+
+        () as JCP = JobControlPlane() {}
+
+        @consistent(trigger=periodic, period=5.0)
+        stream&lt;rstring key, uint64 dummy&gt; Documents = Beacon() {
+            param
+                period: 0.01;
+            output
+                Documents : key = "SAMPLE"+(rstring) IterationCount();
+        }
+
+        () as ElasticsearchSink = ElasticsearchIndex(Documents) {
+            param
+                indexName: $indexName;
+                idNameAttribute: key;
+        }
+}
+</pre>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+</body>
+</html>
