@@ -1,0 +1,32 @@
+Overview
+========
+
+Provides functions to store tuple data as JSON documents in Elasticsearch indices.
+This package exposes the `com.ibm.streamsx.elasticsearch` toolkit as Python methods for services on IBM Cloud.
+
+`Streaming Analytics <https://www.ibm.com/cloud/streaming-analytics>`_
+`Compose for Elasticsearch <https://www.ibm.com/cloud/compose/elasticsearch>`_
+
+
+Sample
+======
+
+A simple hello world example of a Streams application writing string messages to
+an index.::
+
+    from streamsx.topology.topology import *
+    from streamsx.topology.schema import CommonSchema
+    from streamsx.topology.context import submit
+    import streamsx.elasticsearch as es
+
+    topo = Topology('ElasticsearchHelloWorld')
+
+    s = topo.source(['Hello', 'World!']).as_string()
+    es.bulk_insert(s, 'test-index-cloud')
+
+    submit('STREAMING_ANALYTICS_SERVICE', topo)
+
+Documentation
+=============
+
+* `streamsx.elasticsearch package documentation <http://streamsxelasticsearch.readthedocs.io/en/pypackage/>`_

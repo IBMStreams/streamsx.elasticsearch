@@ -3,3 +3,13 @@
 /.*~
 /*~
 
+/python/**/__pycache__/
+/python/**/*.pyc
+/python/**/job*.tar.gz
+/python/**/*tk*/
+/python/**/*tk*.zip
+/python/package/docs/build/
+/python/package/docs/source/generated/
+/python/package/streamsx.elasticsearch.egg-info/
+/python/package/dist/
+/python/package/build/
