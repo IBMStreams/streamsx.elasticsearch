@@ -23,6 +23,10 @@ The Elasticsearch toolkit is an open source IBM Streams toolkit that provides ad
 
 This is an overview of changes for major and minor version upgrades. For details see the Releases in public Github.
 
+++ What is new in version 2.1.1
+
+* Fix missing error text information in case of bulk request failures.
+
 ++ What is new in version 2.1.0
 
 * The ElasticsearchIndex operator provides a new parameter 'documentAttribute'. Use this to pass complete JSON documents to the operator for indexing.
@@ -70,7 +74,7 @@ as they constitute serious security holes.
   you can use this parameter to temporarily disable hostnam verification.
 
 ]]></info:description>
-    <info:version>2.1.0</info:version>
+    <info:version>2.1.1</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies/>

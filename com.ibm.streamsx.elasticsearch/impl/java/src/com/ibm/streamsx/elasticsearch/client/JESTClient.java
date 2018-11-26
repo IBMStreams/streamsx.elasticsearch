@@ -337,15 +337,15 @@ public class JESTClient implements Client {
 				if (result.getErrorMessage() != null) {
 					logger.error("Bulk send failed. bulk size = " + Integer.toString(bulkSize));
 					logger.error("Error: " + result.getErrorMessage());
-				} else {
-					// TODO : how to test this code path ? 
-					for (BulkResultItem item : result.getItems()) {
-						if (item.error != null) {
-							failedInserts++;
-							logger.error("Bulk item indexing failed. " + item.error);
+				    if (null != result.getItems()) {
+						for (BulkResultItem item : result.getItems()) {
+							if (item.error != null) {
+								failedInserts++;
+								logger.error("Bulk item indexing failed. " + item.error);
+							}
 						}
-					}
-					logger.error("Bulk request was partially successful. Total items = " + Integer.toString(bulkSize) + ", failed = " + Integer.toString(failedInserts));
+						logger.error("Total items = " + Integer.toString(bulkSize) + ", failed = " + Integer.toString(failedInserts));
+				    }
 				}
 			}
 		}
