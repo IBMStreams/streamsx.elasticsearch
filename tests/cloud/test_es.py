@@ -4,6 +4,7 @@ from streamsx.topology.topology import *
 from streamsx.topology.tester import Tester
 import streamsx.spl.op as op
 import streamsx.spl.toolkit as tk
+import streamsx.rest as sr
 import os, os.path
 import elasticsearch
 from elasticsearch import Elasticsearch
@@ -139,9 +140,13 @@ class TestCloud(TestDistributed):
     @classmethod
     def setUpClass(self):
         super().setUpClass()
+        # start streams service
+        connection = sr.StreamingAnalyticsConnection()
+        service = connection.get_streaming_analytics()
+        result = service.start_instance()
 
     def setUp(self):
-        Tester.setup_streaming_analytics(self, force_remote_build=True)
+        Tester.setup_streaming_analytics(self, force_remote_build=False)
         self.elasticsearch_toolkit_location = "../../com.ibm.streamsx.elasticsearch"
         self.isCloudTest = True
         
@@ -152,6 +157,10 @@ class TestCloudInstall(TestDistributed):
     @classmethod
     def setUpClass(self):
         super().setUpClass()
+        # start streams service
+        connection = sr.StreamingAnalyticsConnection()
+        service = connection.get_streaming_analytics()
+        result = service.start_instance()
 
     def setUp(self):
         Tester.setup_streaming_analytics(self, force_remote_build=True)
