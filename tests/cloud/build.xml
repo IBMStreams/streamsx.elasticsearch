@@ -1,4 +1,4 @@
-<project name="streamsx.elasticsearch.tests" default="test" basedir=".">
+<project name="streamsx.elasticsearch.tests" default="testcloud" basedir=".">
 
     <property environment="env" />
     <property name="testtoolkit" location="es_test"/>
@@ -57,7 +57,7 @@
             <arg value="-u"/>
             <arg value="-m"/>
             <arg value="unittest"/>
-            <arg value="test_es.TestDistributed"/>
+            <arg value="test_es.Test"/>
         </exec>
     </target>
 

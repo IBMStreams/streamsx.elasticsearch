@@ -36,7 +36,7 @@ Install the Elasticsearch client, by entering the following command on the comma
     pip install elasticsearch
 
 
-## Run the test with Streaming Analytics service
+## Run the test with Streaming Analytics service and toolkit from this repository
 
     ant testcloud
 
@@ -48,12 +48,12 @@ Example for running a single test case:
 
     python3 -u -m unittest test_es.TestCloud.test_consistent_region_with_resets
 
-## Run the test with Local Streams instance
+## Run the test with Local Streams instance and toolkit from this repository
 
     ant testlocal
 
 or
 
-    python3 -u -m unittest test_es.TestDistributed
+    python3 -u -m unittest test_es.Test
 
 
