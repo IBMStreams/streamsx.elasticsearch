@@ -11,6 +11,10 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 import urllib3
 
+import streamsx.topology.context
+import requests
+from urllib.parse import urlparse
+
 class Test(unittest.TestCase):
     """ Test invocations of composite operators in local Streams instance """
 
@@ -27,7 +31,6 @@ class Test(unittest.TestCase):
     def setUp(self):
         Tester.setup_distributed(self)
         self.elasticsearch_toolkit_location = "../../com.ibm.streamsx.elasticsearch"
-        self.isCloudTest = False
 
     def tearDown(self):
         self._es.indices.delete(index=self._indexName, ignore=[400, 404])
@@ -36,6 +39,24 @@ class Test(unittest.TestCase):
         tk.add_toolkit(topo, test_toolkit)
         if self.elasticsearch_toolkit_location is not None:
             tk.add_toolkit(topo, self.elasticsearch_toolkit_location)
+
+    def _service(self, remote_build=True):
+        streams_rest_url = os.environ['STREAMS_REST_URL']
+        streams_service_name = os.environ['STREAMS_SERVICE_NAME']
+        streams_user = os.environ['STREAMS_USERNAME']
+        streams_password = os.environ['STREAMS_PASSWORD']
+        uri_parsed = urlparse(streams_rest_url)
+        hostname = uri_parsed.hostname
+        r = requests.get('https://'+hostname+':31843/v1/preauth/validateAuth', auth=(streams_user, streams_password), verify=False)
+        token = r.json()['accessToken']
+        cfg =  {
+            'type':'streams',
+            'connection_info':{
+                'serviceBuildEndpoint':'https://'+hostname+':32085',
+                'serviceRestEndpoint': 'https://'+uri_parsed.netloc+'/streams/rest/instances/'+streams_service_name},
+            'service_token': token }
+        cfg[streamsx.topology.context.ConfigParams.FORCE_REMOTE_BUILD] = remote_build
+        return cfg
 
     def _build_launch_app(self, name, composite_name, parameters, num_result_tuples, test_toolkit, exact=True, run_for=60, resets=0):
         print ("------ "+name+" ------")
@@ -52,14 +73,18 @@ class Test(unittest.TestCase):
         self.tester.tuple_count(test_op.stream, num_result_tuples, exact=False)
 
         cfg = {}
-        job_config = streamsx.topology.context.JobConfig(tracing='warn')
-        # icp config
         if ("TestICP" in str(self)):
-            job_config.raw_overlay = {"configInstructions": {"convertTagSet": [ {"targetTagSet":["python"] } ]}}
+            remote_build = False
+            if ("TestICPRemote" in str(self)):
+                remote_build = True
+            cfg = self._service(remote_build)
+
+        # change trace level
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
         job_config.add(cfg)
 
-        if ("Cloud" not in str(self)):
-            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        if ("TestCloud" not in str(self)):
+            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False   
 
         # Run the test
         test_res = self.tester.test(self.test_ctxtype, cfg, assert_on_fail=True, always_collect_logs=True)
@@ -146,8 +171,8 @@ class TestICPRemote(TestICP):
 
     def setUp(self):
         Tester.setup_distributed(self)
-        self.streams_install = os.environ.get('STREAMS_INSTALL')
-        self.elasticsearch_toolkit_location = self.streams_install+'/toolkits/com.ibm.streamsx.elasticsearch'
+        self.elasticsearch_toolkit_location = None
+
 
 class TestCloud(Test):
     """ Test in Streaming Analytics Service using local toolkit (repo) """
@@ -163,42 +188,32 @@ class TestCloud(Test):
     def setUp(self):
         Tester.setup_streaming_analytics(self, force_remote_build=False)
         self.elasticsearch_toolkit_location = "../../com.ibm.streamsx.elasticsearch"
-        self.isCloudTest = True
 
-class TestCloudLocal(Test):
+
+class TestCloudLocal(TestCloud):
     """ Test in Streaming Analytics Service using local installed toolkit """
 
     @classmethod
     def setUpClass(self):
-        # start streams service
-        connection = sr.StreamingAnalyticsConnection()
-        service = connection.get_streaming_analytics()
-        result = service.start_instance()
         super().setUpClass()
 
     def setUp(self):
         Tester.setup_streaming_analytics(self, force_remote_build=False)
         self.streams_install = os.environ.get('STREAMS_INSTALL')
         self.elasticsearch_toolkit_location = self.streams_install+'/toolkits/com.ibm.streamsx.elasticsearch'
-        self.isCloudTest = True
 
 
-class TestCloudLocalRemote(Test):
+class TestCloudLocalRemote(TestCloud):
     """ Test in Streaming Analytics Service using local installed toolkit and remote build """
 
     @classmethod
     def setUpClass(self):
-        # start streams service
-        connection = sr.StreamingAnalyticsConnection()
-        service = connection.get_streaming_analytics()
-        result = service.start_instance()
         super().setUpClass()
 
     def setUp(self):
         Tester.setup_streaming_analytics(self, force_remote_build=True)
         self.streams_install = os.environ.get('STREAMS_INSTALL')
         self.elasticsearch_toolkit_location = self.streams_install+'/toolkits/com.ibm.streamsx.elasticsearch'
-        self.isCloudTest = True
 
 
 class TestCloudRemote(Test):
@@ -206,15 +221,11 @@ class TestCloudRemote(Test):
 
     @classmethod
     def setUpClass(self):
-        # start streams service
-        connection = sr.StreamingAnalyticsConnection()
-        service = connection.get_streaming_analytics()
-        result = service.start_instance()
         super().setUpClass()
 
     def setUp(self):
         Tester.setup_streaming_analytics(self, force_remote_build=True)
         # remote toolkit is used
         self.elasticsearch_toolkit_location = None
-        self.isCloudTest = True
+
 
