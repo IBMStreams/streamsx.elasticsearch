@@ -24,7 +24,7 @@ class Test(unittest.TestCase):
         print ("Setup Elasticsearch client ...")
         # ES client expects ES_URL environment variable with URL to Compose Elasticsearch service, e.g. https://user:password@portalxxx.composedb.com:port/
         es_url = os.environ['ES_URL']
-        self._es = Elasticsearch([es_url],verify_certs=True)
+        self._es = Elasticsearch([es_url],verify_certs=False)
         self._indexName = 'test-index-cloud'
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning) 
 
