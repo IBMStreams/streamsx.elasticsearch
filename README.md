@@ -1,4 +1,4 @@
-# streamsx.elasticsearch
+# streamsx.elasticsearch 
 
 Toolkit for sending tuple data from Streams applications to Elasticsearch.
 

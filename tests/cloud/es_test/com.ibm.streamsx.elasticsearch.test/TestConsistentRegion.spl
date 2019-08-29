@@ -65,8 +65,8 @@ public composite TestConsistentRegionAppConfig (output DummyResult)
 				appConfigName: $appConfigName;
 				indexName: $indexName;
 				idNameAttribute: key;
-				sslTrustStore: getThisToolkitDir()+"/etc/cacerts";
-				sslTrustStorePassword: "123456";
+				//sslTrustStore: getThisToolkitDir()+"/etc/cacerts";
+				//sslTrustStorePassword: "123456";
 		}
 
 		stream<rstring result> DummyResult = Custom() {

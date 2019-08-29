@@ -71,8 +71,8 @@ public composite TestBulk (output DummyResult)
 			param
 				appConfigName: $appConfigName;
 				indexName : $indexName;
-				sslTrustStore : getThisToolkitDir()+"/etc/cacerts";
-				sslTrustStorePassword : "123456";
+				//sslTrustStore : getThisToolkitDir()+"/etc/cacerts";
+				//sslTrustStorePassword : "123456";
 				bulkSize: $bulkSize;
 			config placement: partitionColocation("A");
 		}
