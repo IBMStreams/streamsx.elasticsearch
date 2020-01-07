@@ -1,6 +1,7 @@
 package com.ibm.streamsx.elasticsearch.i18n;
 
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
@@ -13,18 +14,35 @@ public class Messages
 	// the messages* files are searched in the directory of this class
 	private static final String BUNDLE_NAME = "com.ibm.streamsx.elasticsearch.i18n.messages.messages"; //$NON-NLS-1$#
 
-	// load the bundle based on the current locale
-	private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle.getBundle(BUNDLE_NAME);
+    private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle.getBundle (BUNDLE_NAME);
+    private static final ResourceBundle FALLBACK_RESOURCE_BUNDLE = ResourceBundle.getBundle (BUNDLE_NAME, new Locale ("en", "US"));
 
-	private Messages()
-	{
-	}
+    private Messages() {
+    }
 
-    public static String getString(String key, Object... params  ) {
+    public static String getString(String key) {
         try {
-            return MessageFormat.format(RESOURCE_BUNDLE.getString(key), params);
+            return getRawMsg (key);
         } catch (MissingResourceException e) {
             return '!' + key + '!';
+        }
+    }
+
+    public static String getString (String key, Object... args) {
+        try {
+            String msg = getRawMsg (key);
+            if (args == null) return msg;
+            return MessageFormat.format (msg, args);
+        } catch (MissingResourceException e) {
+            return '!' + key + '!';
+        }
+    }
+
+    private static String getRawMsg (String key) throws MissingResourceException {
+        try {
+            return RESOURCE_BUNDLE.getString(key);
+        } catch (MissingResourceException e) {
+            return FALLBACK_RESOURCE_BUNDLE.getString(key);
         }
     }
 }
