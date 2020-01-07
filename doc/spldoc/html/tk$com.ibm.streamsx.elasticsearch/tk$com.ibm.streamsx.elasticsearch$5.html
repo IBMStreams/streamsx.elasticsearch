@@ -7,65 +7,53 @@
 <meta name="copyright" content="(C) Copyright 2005"/>
 <meta name="DC.rights.owner" content="(C) Copyright 2005"/>
 <meta name="DC.Type" content="reference"/>
-<meta name="DC.Title" content="Troubleshooting SSL connection problems"/>
+<meta name="DC.Title" content="Creating truststore files for usage with SSL"/>
 <meta name="DC.Format" content="XHTML"/>
 <meta name="DC.Identifier" content="spldoc_page"/>
 <link rel="stylesheet" type="text/css" href="../../html/commonltr.css"/>
 <link rel="stylesheet" type="text/css" href="../../html/spldoc.css"/>
-<title>Troubleshooting SSL connection problems</title>
+<title>Creating truststore files for usage with SSL</title>
 </head>
 <body id="spldoc_page">
 
 
-<h1 class="title topictitle1">Troubleshooting SSL connection problems</h1>
+<h1 class="title topictitle1">Creating truststore files for usage with SSL</h1>
 
 <div class="body refbody">
 <div class="section">
 <p class="p">
-<a class="xref" href="../toolkits/toolkits.html">IBMStreams streamsx.elasticsearch Toolkit</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.elasticsearch.html">com.ibm.streamsx.elasticsearch 2.1.1</a> &gt; Troubleshooting SSL connection problems</p>
+<a class="xref" href="../toolkits/toolkits.html">IBMStreams streamsx.elasticsearch Toolkit</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.elasticsearch.html">com.ibm.streamsx.elasticsearch 2.1.2</a> &gt; Creating truststore files for usage with SSL</p>
 
 </div>
 
 
 <div class="section">
-<p class="p">If you encounter problems connecting to an SSL/TLS server, use the following parameters to diagnose the problem.
+<p class="p">This is only needed, if your Java runtime does not trust the server certificates per default.  In that case you have to manually download the certificate (or the certificate of the CA) and create a Java truststore file for usage with the operators.
 </p>
 
-<p class="p"><strong class="ph b">NOTE:</strong> these parameters should only be used for debugging purposes, and must not be used in production environments as they constitute serious security holes.
-</p>
-
-<div class="p">
+<div class="p">To get the certificates you have multiple options
 <ul class="ul">
-<li class="li"> <tt class="ph tt">sslDebug</tt> this will cause all debug information from the Java SSL/TLS layer to be dumped to the conole log</li>
+<li class="li"> You can use the <tt class="ph tt">openssl s_client</tt> command to print all server certificates to the console`</li>
 
-<li class="li">
-<div class="p"> <tt class="ph tt">sslTrustAllCertificates</tt> you can use this parameter to detect the following situations:
-<ul class="ul">
-<li class="li"> The server uses a self-signed certificate which of course is not trusted by your default Java runtime.</li>
+<li class="li"> You can use the <tt class="ph tt">curl</tt> command to access the server and have debug informations print out</li>
 
-<li class="li"> The server certificate is signed by a Certification authority that is not trusted by default by your Java runtime</li>
-
-<li class="li"> The servers certificate chain contains an untrusted certificate</li>
+<li class="li"> The easiest way is probably to enter the server URL in a firefox browser and than click on the little green lock icon in the URL bar.   Afterwards you can examine the certificate chain and export any missing certificate to a file.</li>
 
 </ul>
 
 </div>
 
-<p class="p">  You can list the trusted certificate authorities in your Java runtime by using the keytool command, for example:
+<p class="p">Once you have the certificate(s) available as files in PEM format, copy it to the etc folder of your application and use the Java keytool command to create a truststore file and import the certificates
 </p>
 
-<p class="p">  <tt class="ph tt">keytool -keystore "$JAVA_HOME/jre/lib/security/cacerts" -list -storepass changeit</tt>
+<p class="p"><tt class="ph tt">keytool -import -trustcacerts -file newCertFile.crt -keystore trustStore.jks -storepass 123456</tt>
 </p>
-</li>
 
-<li class="li">
-<p class="p"> <tt class="ph tt">sslVerifyHostname</tt> in case the certificate chain is valid, but the certificate does not contain the hostname of the server   you can use this parameter to temporarily disable hostnam verification.
+<p class="p">This creates a file named <tt class="ph tt">trustStore.jks</tt> in the etc directory with a password of <tt class="ph tt">123456</tt>
 </p>
-</li>
 
-</ul>
-
-</div>
+<p class="p">Use these values for the operator parameters, in order to access the server.
+</p>
 
 </div>
 
