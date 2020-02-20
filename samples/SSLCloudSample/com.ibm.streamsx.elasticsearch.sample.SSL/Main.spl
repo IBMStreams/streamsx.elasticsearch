@@ -27,7 +27,7 @@ use com.ibm.streamsx.elasticsearch::ElasticsearchIndex ;
  * URL to connect to Elasticsearch server
  *
   */
-composite Main
+public composite Main
 {
 
 	param

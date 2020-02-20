@@ -20,7 +20,7 @@ use com.ibm.streamsx.elasticsearch::ElasticsearchIndex;
  * Optional parameter change the index name, default: index1
  *
   */
-composite Main
+public composite Main
 {
 
 	param
