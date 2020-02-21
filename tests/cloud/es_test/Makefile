@@ -46,7 +46,7 @@ clean:
 
 configure:
 	-streamtool rmappconfig --noprompt es
-	streamtool mkappconfig --property userName=$(ES_USER) --property password=$(ES_PASSWORD) --property nodeList=$(ES_NODES) --property sslEnabled=true es
+	streamtool mkappconfig --property userName=$(ES_USER) --property password=$(ES_PASSWORD) --property nodeList=$(ES_NODES) --property sslEnabled=true --property sslTrustAllCertificates=true es
 
 tkidx:
 	$(STREAMS_INSTALL)/bin/spl-make-toolkit -i .
