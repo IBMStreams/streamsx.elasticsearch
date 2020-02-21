@@ -34,7 +34,7 @@ You need to launch the application in distributed mode, otherwise the applicatio
 
 Verify that data is written into `index2` with the connection string of your instance:
 
-curl -u admin:PASSWORD 'https://portal-ssl11-22.bmix-eu-gb-yp-0a000dc-a22d-22bd-a333-4444c555ba66.77777777.composedb.com:15149/index2/_search?q=*&pretty'
+curl -k -u admin:PASSWORD 'https://portal-ssl11-22.bmix-eu-gb-yp-0a000dc-a22d-22bd-a333-4444c555ba66.77777777.composedb.com:15149/index2/_search?q=*&pretty'
 
 
 ### Clean:

@@ -54,9 +54,7 @@ public composite Main
 				indexName : $indexName;
 				nodeList : $nodeList;
 				sslEnabled : true;
-				sslDebug : false;
-				sslTrustStore : "cacerts";
-				sslTrustStorePassword : "123456";
+				sslTrustAllCertificates: true;
 				userName : $userName;
 				password : $password;
 		}
