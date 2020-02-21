@@ -20,7 +20,7 @@ When launching the application in standalone mode, you need to update `nodeList`
 
 Verify that data is written into `index1` with the connection string of your instance:
 
-curl -u admin:PASSWORD 'https://portal-ssl11-22.bmix-eu-gb-yp-0a000dc-a22d-22bd-a333-4444c555ba66.77777777.composedb.com:15149/index1/_search?q=*&pretty'
+curl -k -u admin:PASSWORD 'https://portal-ssl11-22.bmix-eu-gb-yp-0a000dc-a22d-22bd-a333-4444c555ba66.77777777.composedb.com:15149/index1/_search?q=*&pretty'
 
 
 ### Clean:

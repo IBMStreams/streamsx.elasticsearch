@@ -17,7 +17,7 @@ namespace com.ibm.streamsx.elasticsearch.sample.ECG ;
 
 use com.ibm.streamsx.elasticsearch::ElasticsearchIndex ;
 
-composite Main
+public composite Main
 {
 	graph
 		/**

@@ -6,6 +6,8 @@ import streamsx.spl.op as op
 import streamsx.spl.toolkit as tk
 import streamsx.rest as sr
 import os, os.path
+import subprocess
+from subprocess import call, Popen, PIPE
 import elasticsearch
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
@@ -14,6 +16,14 @@ import urllib3
 import streamsx.topology.context
 import requests
 from urllib.parse import urlparse
+
+def streams_install_env_var():
+    result = True
+    try:
+        os.environ['STREAMS_INSTALL']
+    except KeyError: 
+        result = False
+    return result
 
 class Test(unittest.TestCase):
     """ Test invocations of composite operators in local Streams instance """
@@ -24,9 +34,16 @@ class Test(unittest.TestCase):
         print ("Setup Elasticsearch client ...")
         # ES client expects ES_URL environment variable with URL to Compose Elasticsearch service, e.g. https://user:password@portalxxx.composedb.com:port/
         es_url = os.environ['ES_URL']
+        print (str(es_url))
         self._es = Elasticsearch([es_url],verify_certs=False)
         self._indexName = 'test-index-cloud'
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning) 
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        creds = urlparse(es_url)
+        self._es_user_name = creds.username
+        self._es_password = creds.password
+        self._es_node_list = creds.hostname+':'+str(creds.port)
+
 
     def setUp(self):
         Tester.setup_distributed(self)
@@ -74,12 +91,29 @@ class Test(unittest.TestCase):
         print("Count: "+str(count['count']))
         assert (count['count'] == expectedNum), "Wrong tuple count (expected="+str(expectedNum)+"): "+str(count['count'])        
 
+    def _run_shell_command_line(self, command):
+        process = Popen(command, universal_newlines=True, shell=True, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        return stdout, stderr, process.returncode
+
+    def _create_app_config(self):
+        if ("TestICP" in str(self) or "TestCloud" in str(self) ):
+            print ("Ensure that application configuration 'es' is created.")
+        else:
+            if streams_install_env_var():
+                print ("Create elasticsearch application configuration with streamtool")
+                this_dir = os.path.dirname(os.path.realpath(__file__))
+                app_dir = this_dir+'/es_test'
+                stdout, stderr, err = self._run_shell_command_line('export ES_NODES='+self._es_node_list+';'+'export ES_USER='+self._es_user_name+';'+'export ES_PASSWORD='+self._es_password+';'+'cd '+app_dir+'; make configure')
+                print (str(err))
+
     # ------------------------------------
 
     # CONSISTENT REGION test with TopologyTester:
     # Resets triggered by ConsistentRegionResetter and Beacon re-submits the tuples
     def test_consistent_region_with_resets(self):
         self._indexName = 'test-index-cr'
+        self._create_app_config()
         # delete index before launching Streams job
         self._es.indices.delete(index=self._indexName, ignore=[400, 404]) 
         numResets = 3
@@ -93,6 +127,7 @@ class Test(unittest.TestCase):
 
     def test_bulk(self):
         self._indexName = 'test-index-bulk'
+        self._create_app_config()
         # delete index before launching Streams job
         self._es.indices.delete(index=self._indexName, ignore=[400, 404]) 
         numTuples = 20000 # num generated tuples
