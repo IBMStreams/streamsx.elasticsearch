@@ -3,7 +3,7 @@
   <info:identity>
     <info:name>ElasticsearchSSLCloudSample</info:name>
     <info:description>Demonstrates the usage of using the ElasticsearchIndex operator with SSL connection to the IBM cloud service.</info:description>
-    <info:version>1.0.0</info:version>
+    <info:version>1.0.1</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies>
