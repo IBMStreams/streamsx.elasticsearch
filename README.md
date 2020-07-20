@@ -8,6 +8,9 @@ Toolkit for sending tuple data from Streams applications to Elasticsearch.
 
 Find the SPLDOC documentation [here](https://ibmstreams.github.io/streamsx.elasticsearch/doc/spldoc/html/).
 
+## Changes
+[CHANGELOG.md](com.ibm.streamsx.elasticsearch/CHANGELOG.md)
+
 ## IBM Cloud
 
 This toolkit is compatible with the [Streaming Analytics](https://www.ibm.com/cloud/streaming-analytics) service and [Compose for Elasticsearch](https://www.ibm.com/cloud/compose/elasticsearch) service on IBM Cloud.
