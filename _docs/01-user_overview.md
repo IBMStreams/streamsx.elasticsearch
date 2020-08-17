@@ -27,9 +27,9 @@ sidebar:
 
 _Note: There are samples in the toolkit’s `samples` folder you may reference._
 
-* [AppConfigSample](https://github.com/IBMStreams/streamsx.elasticsearch/tree/master/samples/AppConfigSample)
-* [ECGSample](https://github.com/IBMStreams/streamsx.elasticsearch/tree/master/samples/ECGSample)
-* [SSLCloudSample](https://github.com/IBMStreams/streamsx.elasticsearch/tree/master/samples/SSLCloudSample)
+* [AppConfigSample](https://github.com/IBMStreams/streamsx.elasticsearch/tree/develop/samples/AppConfigSample)
+* [ECGSample](https://github.com/IBMStreams/streamsx.elasticsearch/tree/develop/samples/ECGSample)
+* [SSLCloudSample](https://github.com/IBMStreams/streamsx.elasticsearch/tree/develop/samples/SSLCloudSample)
 
 
 ## [](#header-4)Getting Started with IBM Streams
