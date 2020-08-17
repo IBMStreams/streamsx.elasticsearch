@@ -2,7 +2,7 @@
 title: "Toolkit Usage Overview"
 permalink: /docs/user/overview/
 excerpt: "How to use this toolkit."
-last_modified_at: 2018-11-20T12:37:48-04:00
+last_modified_at: 2020-08-17T09:37:48-04:00
 redirect_from:
    - /theme-setup/
 sidebar:
@@ -14,7 +14,7 @@ sidebar:
 
 ## [](#header-1)Toolkit description
 
-* Blog "Store and Graph Data with the Elasticsearch Toolkit": [Streamsdev](https://developer.ibm.com/streamsdev/2017/09/01/store-graph-data-elasticsearch-toolkit/)
+* Blog "Store and Graph Data with the Elasticsearch Toolkit": [Article](https://community.ibm.com/community/user/cloudpakfordata/viewdocument/store-and-graph-data-with-the-elast?CommunityKey=c0c16ff2-10ef-4b50-ae4c-57d769937235&tab=librarydocuments)
 * [SPLDoc for the streamsx.elasticsearch toolkit](https://ibmstreams.github.io/streamsx.elasticsearch/doc/spldoc/html/index.html)
 
 ## [](#header-2)Prerequisites
