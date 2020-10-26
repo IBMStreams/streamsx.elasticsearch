@@ -1,6 +1,8 @@
 # Changes
 ==========
 
+## v2.1.7
+* [#60](https://github.com/IBMStreams/streamsx.elasticsearch/issues/60) Third-party libraries updated (httpclient: 4.5.13)
 
 ## v2.1.6
 * [#58](https://github.com/IBMStreams/streamsx.elasticsearch/issues/58) Third-party lib updated to resolve security vulnerabilities (commons-codec: 1.14)
