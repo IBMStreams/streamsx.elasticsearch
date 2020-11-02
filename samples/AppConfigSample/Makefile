@@ -9,6 +9,13 @@ ifeq ($(STREAMS_STUDIO_BUILDING), 1)
   SPLC = $(STREAMS_STUDIO_SC_PATH)
   SPL_PATH = $(STREAMS_STUDIO_SPL_PATH)
   OUTPUT_DIR = $(STREAMS_STUDIO_OUTPUT_DIRECTORY)
+else ifdef STREAMS_BUILDSERVICE
+    $(info Building using buildservice)
+    ifeq ($(STREAMS_INSTALL),)
+        $(error error: environment variable STREAMS_INSTALL has to be set)
+    endif
+    SPLC = $(STREAMS_INSTALL)/bin/sc
+    SPL_PATH = ../toolkits:$(STREAMS_INSTALL)/toolkits
 else
   # Building outside of Streams Studio...
   ifeq ($(STREAMS_INSTALL),)
@@ -19,8 +26,10 @@ else
     ifneq ($(realpath ../../com.ibm.streamsx.elasticsearch),)
       ELASTICSEARCH_TOOLKIT_HOME = ../../com.ibm.streamsx.elasticsearch
     endif
-    ifneq ($(realpath $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.elasticsearch),)
-      ELASTICSEARCH_TOOLKIT_HOME = $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.elasticsearch
+    ifeq ($(ELASTICSEARCH_TOOLKIT_HOME),)
+      ifneq ($(realpath $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.elasticsearch),)
+        ELASTICSEARCH_TOOLKIT_HOME = $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.elasticsearch
+      endif
     endif
   endif
   SPLC = $(STREAMS_INSTALL)/bin/sc
@@ -28,10 +37,9 @@ else
 endif
 
 # directories and compiler options
-DATA_DIR = /tmp
 SPL_NAMESPACE = com.ibm.streamsx.elasticsearch.sample.AppConfig
 SPL_MAIN_COMPOSITE = $(SPL_NAMESPACE)::Main
-SPLC_FLAGS  = -a -t $(SPL_PATH) --data-directory=$(DATA_DIR)
+SPLC_FLAGS  = -a -t $(SPL_PATH)
 SPL_CMD_ARGS ?= 
 OUTPUT_DIR = output
 

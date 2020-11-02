@@ -1,6 +1,9 @@
 # Changes
 ==========
 
+## latest/develop
+* [#61](https://github.com/IBMStreams/streamsx.elasticsearch/issues/61) Makefiles of sample application prepared for CP4D Streams build service, supports build with [VS Code](https://marketplace.visualstudio.com/items?itemName=IBM.ibm-streams)
+
 ## v2.1.7
 * [#60](https://github.com/IBMStreams/streamsx.elasticsearch/issues/60) Third-party libraries updated (httpclient: 4.5.13)
 

@@ -27,7 +27,7 @@ public composite Main
 		stream<float64 ecg_value, int64 ecg_timestamp> ECGData = ECGSimulator()
 		{
 			param
-				csvPath : dataDirectory() + "/ecgII.csv" ;
+				csvPath : getThisToolkitDir() + "/opt/ecgII.csv" ;
 		}
 
 		/**
