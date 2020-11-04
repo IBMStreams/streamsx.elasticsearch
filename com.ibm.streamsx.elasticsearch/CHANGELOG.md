@@ -1,7 +1,8 @@
 # Changes
 ==========
 
-## latest/develop
+## v2.1.8
+* [#62](https://github.com/IBMStreams/streamsx.elasticsearch/issues/62) Third-party library added (slf4j-simple)
 * [#61](https://github.com/IBMStreams/streamsx.elasticsearch/issues/61) Makefiles of sample application prepared for CP4D Streams build service, supports build with [VS Code](https://marketplace.visualstudio.com/items?itemName=IBM.ibm-streams)
 
 ## v2.1.7
