@@ -102,7 +102,7 @@ as they constitute serious security holes.
   you can use this parameter to temporarily disable hostnam verification.
 
 ]]></info:description>
-    <info:version>2.1.8</info:version>
+    <info:version>2.1.9</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies/>
