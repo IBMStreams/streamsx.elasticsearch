@@ -2,7 +2,7 @@
 ==========
 
 ## v2.1.10
-* [#65](https://github.com/IBMStreams/streamsx.elasticsearch/issues/65) Third-party lib updated (guava: 29.0-jre)
+* [#65](https://github.com/IBMStreams/streamsx.elasticsearch/issues/65) Third-party lib updated (guava: 30.0-jre)
 
 ## v2.1.9
 * [#63](https://github.com/IBMStreams/streamsx.elasticsearch/issues/63) Third-party lib updated (commons-codec: 1.15)
