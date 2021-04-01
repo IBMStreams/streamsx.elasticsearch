@@ -1,4 +1,4 @@
-#Wed Nov 04 06:31:50 UTC 2020
+#Tue Mar 30 14:47:11 UTC 2021
 copytosourcelist=
 hreftargetslist=dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$4.xml,dita/tk$com.ibm.streamsx.elasticsearch/ix$Namespace.xml,dita/tk$com.ibm.streamsx.elasticsearch/op$com.ibm.streamsx.elasticsearch$ElasticsearchIndex.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$3.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$2.xml,dita/tk$com.ibm.streamsx.elasticsearch/op$com.ibm.streamsx.elasticsearch$ElasticsearchIndex$1.xml,dita/tk$com.ibm.streamsx.elasticsearch/ix$Operator.xml,dita/toolkits/ix$Namespace.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$1.xml,dita/toolkits/ix$Operator.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$9.xml,dita/tk$com.ibm.streamsx.elasticsearch/op$com.ibm.streamsx.elasticsearch$ElasticsearchIndex$3.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$8.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$10.xml,dita/tk$com.ibm.streamsx.elasticsearch/ns$com.ibm.streamsx.elasticsearch.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$7.xml,dita/tk$com.ibm.streamsx.elasticsearch/op$com.ibm.streamsx.elasticsearch$ElasticsearchIndex$2.xml,dita/toolkits/toolkits.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$6.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$11.xml,dita/references/OperatorModel.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$12.xml,dita/tk$com.ibm.streamsx.elasticsearch/tk$com.ibm.streamsx.elasticsearch$5.xml
 fullditatopicfile=fullditatopic.list
@@ -37,7 +37,7 @@ codereffile=coderef.list
 keylist=
 codereflist=
 user.input.file.listfile=usr.input.file.list
-user.input.dir=/home/streamsadmin/hostdir/git-public/streamsx.elasticsearch/com.ibm.streamsx.elasticsearch/doc/en_US/spldoc
+user.input.dir=/home/streamsadmin/hostdir/tmp/streamsx.elasticsearch/com.ibm.streamsx.elasticsearch/doc/en_US/spldoc
 uplevels=../
 tempdirToinputmapdir.relative.value=dita/
 conrefpushfile=conrefpush.list
